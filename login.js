@@ -42,7 +42,7 @@ form.addEventListener("submit", async (e) => {
     const profile = userDoc.data();
     if (profile.role === "admin") {
       sessionStorage.setItem("moventra_admin_verified", JSON.stringify({ uid: cred.user.uid, role: "admin", at: Date.now() }));
-      window.location.href = "admin.html";
+      window.location.replace("admin.html?v=adminfix-20260713-1");
     } else if (profile.role === "employe") {
       sessionStorage.setItem("moventra_admin_verified", JSON.stringify({ uid: cred.user.uid, role: "employe", at: Date.now() }));
       window.location.href = "employe.html";

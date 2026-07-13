@@ -436,3 +436,10 @@ body.adminBody{background:#eef6ff;color:#071f3d;padding-bottom:0}.adminTop{posit
   .adminActionsClean{display:none}
 }
 @media(display-mode:standalone){body.adminBody{padding-top:env(safe-area-inset-top)}}
+
+/* ADMIN FIX 2026-07-13 */
+@media(max-width:850px){
+ .adminMenuToggle{display:flex!important;visibility:visible!important;opacity:1!important;position:relative;z-index:301}
+ .adminMenuDropdown{position:fixed!important;top:82px!important;right:12px!important;left:12px!important;max-height:calc(100vh - 100px);overflow:auto;z-index:300!important}
+ .adminMenuDropdown.open{display:block!important}
+}

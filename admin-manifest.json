@@ -3,7 +3,7 @@
   "name": "Moventra Transport — Administration",
   "short_name": "Moventra Admin",
   "description": "Administration des soumissions, travaux et employés de Moventra Transport.",
-  "start_url": "/Moventra-transport/login.html?source=pwa",
+  "start_url": "/Moventra-transport/login.html?source=pwa&v=adminfix-20260713-1",
   "scope": "/Moventra-transport/",
   "display": "standalone",
   "orientation": "portrait-primary",

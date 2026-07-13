@@ -119,15 +119,19 @@ onAuthStateChanged(auth, async (user) => {
     loadStats();
   } catch (error) {
     console.error(error);
-    showDebug("Erreur chargement admin. Vérifie les rules Firestore.", true);
+    showDebug("Erreur chargement admin: " + (error.code || error.message || error), true);
   }
 });
 
 async function loadAll() {
-  await loadEmployees();
-  await loadQuotes();
-  await loadTasks();
-  await loadSocialLinks();
+  const results = await Promise.allSettled([
+    loadEmployees(), loadQuotes(), loadTasks(), loadSocialLinks()
+  ]);
+  const failed = results.filter(r => r.status === "rejected");
+  if (failed.length) {
+    console.error("Chargements admin échoués", failed);
+    showDebug("Admin connecté, mais certains modules n'ont pas chargé. Ouvre Debug pour le détail.", true);
+  }
 }
 
 async function loadEmployees() {
@@ -245,7 +249,8 @@ async function loadQuotes() {
   } catch (error) {
     console.error("loadQuotes", error);
     setText("countQuotes", "!");
-    list.innerHTML = `<p style="color:#d21f3c;font-weight:900;">Erreur chargement soumissions.</p>`;
+    list.innerHTML = `<p style="color:#d21f3c;font-weight:900;">Erreur chargement soumissions: ${escapeHtml(error.code || error.message || String(error))}</p>`;
+    showDebug("Erreur soumissions: " + (error.code || error.message || error), true);
   }
 }
 
@@ -577,6 +582,7 @@ const logoutBtnMobile = document.getElementById("logoutBtnMobile");
 if (logoutBtnMobile) {
   logoutBtnMobile.onclick = async () => {
     const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+    sessionStorage.removeItem("moventra_admin_verified");
     await signOut(getAuth());
     location.replace("login.html");
   };
@@ -585,6 +591,7 @@ if (logoutBtnMobile) {
 const notifBtnMobile = document.getElementById("enableNotificationsBtnMobile");
 if (notifBtnMobile) {
   notifBtnMobile.onclick = async () => {
-    if (window.didierEloEnablePush) window.didierEloEnablePush();
+    const desktopBtn = document.getElementById("enableNotificationsBtn");
+    if (desktopBtn) desktopBtn.click();
   };
 }

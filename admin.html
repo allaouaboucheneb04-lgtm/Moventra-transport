@@ -18,8 +18,8 @@
   </script>
   <title>Administration | Moventra Transport</title>
   <link rel="icon" href="logo.jpeg">
-  <link rel="stylesheet" href="style.css?v=datafix-1">
-  <link rel="stylesheet" href="admin.css?v=datafix-1">
+  <link rel="stylesheet" href="style.css?v=adminfix-20260713-1">
+  <link rel="stylesheet" href="admin.css?v=adminfix-20260713-1">
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" href="logo.jpeg">
   <meta name="theme-color" content="#006bd6">
@@ -182,7 +182,23 @@
 
 </main>
 
-  <script type="module" src="admin.js?v=loginfix-2"></script>
+
+<script>
+(function(){
+  const toggle=document.getElementById('adminMenuToggle');
+  const menu=document.getElementById('adminMenuDropdown');
+  if(toggle&&menu){
+    toggle.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();menu.classList.toggle('open');});
+    menu.addEventListener('click',function(e){e.stopPropagation();});
+    document.addEventListener('click',function(){menu.classList.remove('open');});
+  }
+  window.addEventListener('error',function(e){
+    const box=document.getElementById('notificationStatus');
+    if(box){box.textContent='Erreur admin: '+(e.message||'script non chargé');box.style.color='#d21f3c';}
+  });
+})();
+</script>
+  <script type="module" src="admin.js?v=adminfix-20260713-1"></script>
 <script src="pwa.js?v=datafix-1"></script>
 <script src="push.js?v=moventra4" defer></script>
 
