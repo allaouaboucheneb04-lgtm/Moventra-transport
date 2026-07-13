@@ -72,7 +72,7 @@ form?.addEventListener("submit", async (event) => {
 
     const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
     if (window.emailjs) {
-      secondaryTasks.push(emailjs.send("service_yxizoav", "template_7xcmars", data));
+      secondaryTasks.push(emailjs.send("service_o6bm6tl", "template_c0smolo", data));
     }
 
     const results = await Promise.allSettled(secondaryTasks);

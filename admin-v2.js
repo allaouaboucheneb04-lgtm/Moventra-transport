@@ -315,7 +315,7 @@ function renderQuotes() {
       if (q.email) {
         try {
           if (window.emailjs) {
-            await window.emailjs.send("service_yxizoav", "template_confirmation", {
+            await window.emailjs.send("service_o6bm6tl", "template_c0smolo", {
               to: q.email, clientName: q.name || "Client",
               service: q.service || "Service",
               employeeName: emp.name || emp.email,

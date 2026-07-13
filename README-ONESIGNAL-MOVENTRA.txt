@@ -1,6 +1,6 @@
 CONFIGURATION ONESIGNAL MOVENTRA
 
-App ID installé : a6edf32a-9d3b-4fce-ad98-0c5ccfc43672
+App ID installé : b7dc3eab-b127-47dd-9ad4-71295880fd34
 Site GitHub Pages : https://allaouaboucheneb04-lgtm.github.io/Moventra-transport/
 Service worker : /Moventra-transport/OneSignalSDKWorker.js
 Scope : /Moventra-transport/

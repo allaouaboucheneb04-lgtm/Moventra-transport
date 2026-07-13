@@ -503,7 +503,7 @@
       st.textContent = "Envoi..."; st.style.color = "#006bd6";
       const f = await sauvegarderFacture("envoyée");
       try {
-        await emailjs.send("service_yxizoav", "template_facture", {
+        await emailjs.send("service_o6bm6tl", "template_c0smolo", {
           to_email: email, to_name: f.clientNom, facture_numero: f.numero,
           facture_total: f.total + "$", facture_date: f.date, facture_echeance: f.echeance,
           services_details: f.services.map(s => `${s.desc} x${s.qty} = ${parseFloat(s.total).toFixed(2)}$`).join("\n"),
