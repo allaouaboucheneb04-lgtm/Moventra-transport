@@ -1,3 +1,2 @@
-// Colle ici l'URL du module « Webhooks > Custom webhook » créé dans Make.
-// Exemple : https://hook.us2.make.com/xxxxxxxxxxxxxxxxxxxxxxxx
-window.MOVENTRA_WEBHOOK_URL = "";
+// Webhook Make de Moventra Transport.
+window.MOVENTRA_WEBHOOK_URL = "https://hook.us2.make.com/cl7nctbch2kc8espzn5h1h8te1dpobri";

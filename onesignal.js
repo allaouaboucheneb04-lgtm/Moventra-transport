@@ -1,7 +1,7 @@
 window.OneSignalDeferred=window.OneSignalDeferred||[];
 OneSignalDeferred.push(async function(OneSignal){
   try{
-    await OneSignal.init({appId:window.MOVENTRA_ONESIGNAL_APP_ID,serviceWorkerPath:'OneSignalSDKWorker.js',serviceWorkerParam:{scope:'/Moventra-transport/'},allowLocalhostAsSecureOrigin:true});
+    await OneSignal.init({appId:"b7dc3eab-b127-47dd-9ad4-71295880fd34",serviceWorkerPath:'OneSignalSDKWorker.js',serviceWorkerParam:{scope:'/Moventra-transport/'},allowLocalhostAsSecureOrigin:true});
     window.MoventraOneSignal=OneSignal;
   }catch(e){console.error('OneSignal Moventra',e)}
 });
