@@ -12,13 +12,15 @@ function didierNotifStatus(message, ok = true) {
   }
   el.textContent = message;
   el.style.color = ok ? "#078b45" : "#d21f3c";
-  console.log("[OneSignal Didier.Elo]", message);
+  console.log("[OneSignal Moventra]", message);
 }
 
 OneSignalDeferred.push(async function(OneSignal) {
   try {
     await OneSignal.init({
-      appId: "6c4e8421-6a3f-48e1-948c-f7a5d07ed234",
+      appId: "b7dc3eab-b127-47dd-9ad4-71295880fd34",
+      serviceWorkerPath: "Moventra-transport/OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/Moventra-transport/" },
       notifyButton: { enable: false }
     });
     window.didierEloOneSignal = OneSignal;

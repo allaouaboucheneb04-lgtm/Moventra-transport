@@ -1,5 +1,5 @@
-// Didier.Elo PUSH FIX BOUTON - OneSignal Web SDK v16
-const DIDIER_ONESIGNAL_APP_ID = "68ef4d86-fea1-4026-bc9e-3a7ce787814a";
+// Moventra Transport - OneSignal Web SDK v16
+const DIDIER_ONESIGNAL_APP_ID = "b7dc3eab-b127-47dd-9ad4-71295880fd34";
 
 window.didierPushState = window.didierPushState || {
   ready: false,
@@ -83,7 +83,8 @@ function loadOneSignalSdkOnce() {
       try {
         await OneSignal.init({
           appId: DIDIER_ONESIGNAL_APP_ID,
-          safari_web_id: "web.onesignal.auto.2cd5950f-b486-4c84-8005-0f30059d0b0c",
+          serviceWorkerPath: "Moventra-transport/OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/Moventra-transport/" },
           notifyButton: { enable: false },
           welcomeNotification: { disable: true }
         });
@@ -184,7 +185,7 @@ window.didierEloEnablePush = async function() {
     }
 
     if (Notification.permission === "denied") {
-      didierPushStatus("Notifications bloquées. Réglages iPhone > Notifications > Didier.Elo > Autoriser.", false);
+      didierPushStatus("Notifications bloquées. Réglages iPhone > Notifications > Moventra Transport > Autoriser.", false);
       return;
     }
 
