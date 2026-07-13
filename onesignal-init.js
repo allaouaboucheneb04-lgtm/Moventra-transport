@@ -19,8 +19,8 @@ OneSignalDeferred.push(async function(OneSignal) {
   try {
     await OneSignal.init({
       appId: "b7dc3eab-b127-47dd-9ad4-71295880fd34",
-      serviceWorkerPath: "/Moventra-transport/OneSignalSDKWorker.js",
-      serviceWorkerParam: { scope: "/Moventra-transport/" },
+      serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/Moventra-transport/push/onesignal/" },
       notifyButton: { enable: false }
     });
     window.didierEloOneSignal = OneSignal;

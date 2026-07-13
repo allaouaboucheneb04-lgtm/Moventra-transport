@@ -83,8 +83,8 @@ function loadOneSignalSdkOnce() {
       try {
         await OneSignal.init({
           appId: MOVENTRA_ONESIGNAL_APP_ID,
-          serviceWorkerPath: "/Moventra-transport/OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/Moventra-transport/" },
+          serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/Moventra-transport/push/onesignal/" },
           notifyButton: { enable: false },
           welcomeNotification: { disable: true }
         });
@@ -257,7 +257,7 @@ window.moventraPushDebugInfo = async function() {
     pushSubscriptionId: didierGetSubId(OneSignal),
     pushOptedIn: OneSignal?.User?.PushSubscription?.optedIn || false
   };
-  const files = ["OneSignalSDKWorker.js", "OneSignalSDKUpdaterWorker.js", "push.js", "manifest.json"];
+  const files = ["push/onesignal/OneSignalSDKWorker.js", "push.js", "manifest.json", "admin-manifest.json"];
   info.files = {};
   for (const f of files) {
     try {
