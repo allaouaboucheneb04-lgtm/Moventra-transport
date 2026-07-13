@@ -15,7 +15,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 if (window.emailjs) {
-  emailjs.init({ publicKey: "n4Ln13zFITFZtnmdL" });
+  emailjs.init("AuecG8oUqCqCiggFv");
 }
 
 const form = document.getElementById("quoteForm");
@@ -72,7 +72,7 @@ form?.addEventListener("submit", async (event) => {
 
     const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
     if (window.emailjs) {
-      secondaryTasks.push(emailjs.send("service_o6bm6tl", "template_c0smolo", data));
+      secondaryTasks.push(emailjs.send("service_o6bm6tl","template_c0smolo", data));
     }
 
     const results = await Promise.allSettled(secondaryTasks);
