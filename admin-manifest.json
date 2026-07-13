@@ -1,9 +1,9 @@
 {
-  "id": "/Moventra-transport/admin",
+  "id": "/Moventra-transport/admin-login",
   "name": "Moventra Transport — Administration",
   "short_name": "Moventra Admin",
   "description": "Administration des soumissions, travaux et employés de Moventra Transport.",
-  "start_url": "/Moventra-transport/admin",
+  "start_url": "/Moventra-transport/login.html?source=pwa",
   "scope": "/Moventra-transport/",
   "display": "standalone",
   "orientation": "portrait-primary",

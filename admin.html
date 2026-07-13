@@ -3,6 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <script>
+    (function () {
+      const verified = sessionStorage.getItem("moventra_admin_verified");
+      if (!verified) {
+        location.replace("login.html?required=1");
+        return;
+      }
+      document.documentElement.classList.add("auth-checking");
+    })();
+  </script>
   <title>Administration | Moventra Transport</title>
   <link rel="icon" href="logo.jpeg">
   <link rel="stylesheet" href="style.css?v=datafix-1">
@@ -169,7 +182,7 @@
 
 </main>
 
-  <script type="module" src="admin.js?v=datafix-1"></script>
+  <script type="module" src="admin.js?v=loginfix-2"></script>
 <script src="pwa.js?v=datafix-1"></script>
 <script src="push.js?v=moventra3" defer></script>
 

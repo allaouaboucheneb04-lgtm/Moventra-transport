@@ -39,14 +39,27 @@ function showDebug(message, error = false) {
 }
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { location.replace("login.html"); return; }
+  if (!user) {
+    sessionStorage.removeItem("moventra_admin_verified");
+    location.replace("login.html?required=1");
+    return;
+  }
+
+  let verifiedSession = null;
+  try { verifiedSession = JSON.parse(sessionStorage.getItem("moventra_admin_verified") || "null"); } catch (_) {}
+  if (!verifiedSession || verifiedSession.uid !== user.uid) {
+    sessionStorage.removeItem("moventra_admin_verified");
+    await signOut(auth);
+    location.replace("login.html?required=1");
+    return;
+  }
 
   currentUser = user;
   setText("adminEmail", user.email || user.uid);
 
   const logoutBtn = $("logoutBtn");
   if (logoutBtn) {
-    logoutBtn.onclick = async () => { await signOut(auth); location.replace("login.html"); };
+    logoutBtn.onclick = async () => { sessionStorage.removeItem("moventra_admin_verified"); await signOut(auth); location.replace("login.html"); };
   }
 
   const notifBtn = $("enableNotificationsBtn");
@@ -96,6 +109,7 @@ onAuthStateChanged(auth, async (user) => {
     const roleSnap = await getDoc(doc(db, ROLES_COLLECTION, user.uid));
     if (!roleSnap.exists() || roleSnap.data().role !== "admin") {
       alert("Accès admin refusé.");
+      sessionStorage.removeItem("moventra_admin_verified");
       await signOut(auth);
       location.replace("login.html");
       return;
