@@ -7,48 +7,93 @@ const firebaseConfig = {
   projectId: "moventra-fe20f",
   storageBucket: "moventra-fe20f.firebasestorage.app",
   messagingSenderId: "634208041846",
-  appId: "1:634208041846:web:37bf64bed692efd5f31857",};
+  appId: "1:634208041846:web:37bf64bed692efd5f31857",
+  measurementId: "G-N0LFJ6JQXB"
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-emailjs.init({ publicKey: "n4Ln13zFITFZtnmdL" });
-
-const drawer = document.getElementById("drawer");
-document.getElementById("openMenu").onclick = () => drawer.classList.add("open");
-document.getElementById("closeMenu").onclick = () => drawer.classList.remove("open");
-drawer.querySelectorAll("a").forEach(a => a.onclick = () => drawer.classList.remove("open"));
+if (window.emailjs) {
+  emailjs.init({ publicKey: "n4Ln13zFITFZtnmdL" });
+}
 
 const form = document.getElementById("quoteForm");
 const statusEl = document.getElementById("formStatus");
 const submitBtn = document.getElementById("submitBtn");
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+async function sendMoventraWebhook(data, submissionId) {
+  const url = String(window.MOVENTRA_WEBHOOK_URL || "").trim();
+  if (!url) {
+    console.warn("Webhook Make non configuré.");
+    return;
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event: "nouvelle_soumission_moventra",
+      submissionId,
+      createdAt: new Date().toISOString(),
+      nom: data.name || "",
+      telephone: data.phone || "",
+      email: data.email || "",
+      service: data.service || "",
+      depart: data.address || "",
+      destination: data.destination || "",
+      date: data.date || "",
+      typeLogement: data.propertyType || "",
+      etageDepart: data.startFloor || "",
+      etageArrivee: data.endFloor || "",
+      details: data.message || ""
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Webhook Make HTTP ${response.status}`);
+  }
+}
+
+form?.addEventListener("submit", async (event) => {
+  event.preventDefault();
   const data = Object.fromEntries(new FormData(form).entries());
+
   submitBtn.disabled = true;
   submitBtn.textContent = "Envoi en cours...";
   statusEl.textContent = "";
+
   try {
-    await addDoc(collection(db, "demandes_soumission"), {
+    const docRef = await addDoc(collection(db, "demandes_soumission"), {
       ...data,
       source: "site_moventra",
       createdAt: serverTimestamp()
     });
-    await emailjs.send("service_yxizoav", "template_7xcmars", data);
+
+    const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
+    if (window.emailjs) {
+      secondaryTasks.push(emailjs.send("service_yxizoav", "template_7xcmars", data));
+    }
+
+    const results = await Promise.allSettled(secondaryTasks);
+    results.forEach((result) => {
+      if (result.status === "rejected") {
+        console.warn("Service secondaire non envoyé :", result.reason);
+      }
+    });
+
     statusEl.textContent = "✅ Demande envoyée avec succès. Moventra vous contactera rapidement.";
     statusEl.style.color = "#078b45";
     form.reset();
   } catch (error) {
     console.error(error);
-    statusEl.textContent = "❌ Erreur d’envoi. Vérifiez Firebase / EmailJS.";
+    statusEl.textContent = "❌ La demande n’a pas pu être enregistrée. Réessayez ou appelez Moventra.";
     statusEl.style.color = "#d21f3c";
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = "Envoyer la demande";
+    submitBtn.textContent = "Envoyer ma demande";
   }
 });
-
 
 const slides = document.querySelectorAll("#homeSlider .slide");
 let currentSlide = 0;
