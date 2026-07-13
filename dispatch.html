@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dispatch | Moventra Transport Admin</title>
   <link rel="icon" href="logo.jpeg">
-  <link rel="stylesheet" href="style.css?v=v4">
-  <link rel="stylesheet" href="admin.css?v=v4">
+  <link rel="stylesheet" href="style.css?v=dispatchfull-1">
+  <link rel="stylesheet" href="admin.css?v=dispatchfull-1">
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" href="logo.jpeg">
   <meta name="theme-color" content="#006bd6">
@@ -420,22 +420,25 @@
 
     async function addMarkersForQuotes() {
       for (const q of quotes) {
-        if (!q.address) continue;
-        const coords = await geocode(q.address);
+        const depart = qv(q, "address", "depart");
+        const destination = qv(q, "destination", "arrivalAddress", "adresseArrivee");
+        if (!depart) continue;
+        const coords = await geocode(depart);
         if (!coords) continue;
         const marker = L.marker([coords.lat, coords.lng], {
           icon: makeIcon("#e74c3c", "S")
         }).addTo(map);
         marker.bindPopup(`
           <div style="min-width:200px">
-            <strong style="font-size:1rem">📋 ${q.name || "Client"}</strong><br>
-            <span style="color:#60758d;font-size:.85rem">${q.service || "-"}</span><br>
-            <span style="font-size:.85rem">📍 ${q.address}</span><br>
-            <span style="font-size:.85rem">📞 ${q.phone || "-"}</span>
+            <strong style="font-size:1rem">📋 ${esc(qv(q, "name", "nom") || "Client")}</strong><br>
+            <span style="color:#60758d;font-size:.85rem">${esc(qv(q, "service") || "-")}</span><br>
+            <span style="font-size:.85rem">📍 ${esc(depart)}</span><br>
+            ${destination ? `<span style="font-size:.85rem">🏁 ${esc(destination)}</span><br>` : ""}
+            <span style="font-size:.85rem">📞 ${esc(qv(q, "phone", "telephone") || "-")}</span>
           </div>
         `);
         marker.on("click", () => {
-          document.getElementById("mapInfoText").textContent = `Soumission : ${q.name} — ${q.address}`;
+          document.getElementById("mapInfoText").textContent = `Soumission : ${qv(q, "name", "nom") || "Client"} — ${depart}`;
           highlightCard("quote-" + q.id);
         });
         markers.push(marker);
@@ -561,17 +564,39 @@
       if (quotes.length > 0) {
         html += `<p style="font-weight:800;color:#60758d;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Soumissions (${quotes.length})</p>`;
         quotes.forEach(q => {
-          const opts = employees.map(e => `<option value="${e.id}">${e.name || e.email}</option>`).join("");
+          const opts = employees.map(e => `<option value="${e.id}">${esc(e.name || e.email)}</option>`).join("");
+          const name = qv(q, "name", "nom") || "Client";
+          const phone = qv(q, "phone", "telephone");
+          const email = qv(q, "email", "courriel");
+          const service = qv(q, "service");
+          const depart = qv(q, "address", "depart");
+          const destination = qv(q, "destination", "arrivalAddress", "adresseArrivee");
+          const desiredDate = qv(q, "date", "dateSouhaitee");
+          const propertyType = qv(q, "propertyType", "typeLogement");
+          const startFloor = qv(q, "startFloor", "etageDepart");
+          const endFloor = qv(q, "endFloor", "etageArrivee");
+          const details = qv(q, "message", "details");
           html += `
             <div class="dispatchCard" id="quote-${q.id}" data-type="quote" data-id="${q.id}">
               <div class="dispatchCardTop">
-                <h3>${esc(q.name || "Client")}</h3>
+                <h3>${esc(name)}</h3>
                 <span class="dispatchCardBadge nouveau">Nouveau</span>
               </div>
-              <p>🧹 ${esc(q.service || "-")}</p>
-              <p class="cardAddress">📍 ${esc(q.address || "Adresse non fournie")}</p>
-              <p>📞 ${esc(q.phone || "-")}</p>
-              ${q.date ? `<p>📅 ${esc(q.date)}</p>` : ""}
+              <p>📦 <b>${esc(service || "-")}</b></p>
+              <p>📅 ${esc(desiredDate || "-")}</p>
+              <p>🏠 ${esc(propertyType || "-")}</p>
+              <p class="cardAddress">📍 Départ : ${esc(depart || "Adresse non fournie")}</p>
+              <p class="cardAddress">🏁 Arrivée : ${esc(destination || "Adresse non fournie")}</p>
+              <p>⬆️ Étage départ : ${esc(startFloor || "-")} &nbsp;•&nbsp; ⬇️ Étage arrivée : ${esc(endFloor || "-")}</p>
+              <p>📞 ${esc(phone || "-")}</p>
+              <p>✉️ ${esc(email || "-")}</p>
+              <details style="margin-top:8px">
+                <summary style="font-weight:800;color:#006bd6;cursor:pointer">Voir tous les détails</summary>
+                <div style="margin-top:8px;padding:10px;background:#fff;border-radius:12px;border:1px solid #e0ecff;line-height:1.5">
+                  <p><b>📝 Détails :</b> ${esc(details || "-")}</p>
+                  <p><b>Numéro de soumission :</b> ${esc(q.id)}</p>
+                </div>
+              </details>
               <div class="dispatchCardActions">
                 <select class="empSelect-${q.id}">
                   <option value="">Choisir employé</option>
@@ -593,9 +618,22 @@
                 <h3>${esc(t.clientName || "Client")}</h3>
                 <span class="dispatchCardBadge assigné">${esc(t.status || "assigné")}</span>
               </div>
-              <p>🧹 ${esc(t.service || "-")}</p>
-              <p class="cardAddress">📍 ${esc(t.address || "-")}</p>
+              <p>📦 <b>${esc(t.service || "-")}</b></p>
+              <p>📅 ${esc(t.date || "-")}</p>
+              <p class="cardAddress">📍 Départ : ${esc(t.address || "-")}</p>
+              <p class="cardAddress">🏁 Arrivée : ${esc(t.destination || "-")}</p>
+              <p>🏠 ${esc(t.propertyType || "-")}</p>
+              <p>⬆️ ${esc(t.startFloor || "-")} &nbsp;→&nbsp; ⬇️ ${esc(t.endFloor || "-")}</p>
+              <p>📞 ${esc(t.phone || "-")}</p>
+              <p>✉️ ${esc(t.email || "-")}</p>
               <p>👷 ${esc(t.employeeName || "-")}</p>
+              <details style="margin-top:8px">
+                <summary style="font-weight:800;color:#078b45;cursor:pointer">Voir les détails du travail</summary>
+                <div style="margin-top:8px;padding:10px;background:#fff;border-radius:12px;border:1px solid #c8f0d8;line-height:1.5">
+                  <p><b>📝 Détails :</b> ${esc(t.message || "-")}</p>
+                  <p><b>Numéro de soumission :</b> ${esc(t.quoteId || "-")}</p>
+                </div>
+              </details>
             </div>`;
         });
       }
@@ -656,13 +694,17 @@
         // Créer la tâche
         await addDoc(collection(db, TASKS_COLLECTION), {
           quoteId,
-          clientName: q.name || "",
-          phone: q.phone || "",
-          email: q.email || "",
-          service: q.service || "",
-          address: q.address || "",
-          date: q.date || "",
-          message: q.message || "",
+          clientName: qv(q, "name", "nom"),
+          phone: qv(q, "phone", "telephone"),
+          email: qv(q, "email", "courriel"),
+          service: qv(q, "service"),
+          address: qv(q, "address", "depart"),
+          destination: qv(q, "destination", "arrivalAddress", "adresseArrivee"),
+          date: qv(q, "date", "dateSouhaitee"),
+          propertyType: qv(q, "propertyType", "typeLogement"),
+          startFloor: qv(q, "startFloor", "etageDepart"),
+          endFloor: qv(q, "endFloor", "etageArrivee"),
+          message: qv(q, "message", "details"),
           employeeId: emp.id,
           employeeName: emp.name || emp.email || "Employé",
           employeeEmail: emp.email || "",
@@ -703,6 +745,14 @@
       document.querySelectorAll(".dispatchCard").forEach(c => c.classList.remove("selected"));
       const el = document.getElementById(id);
       if (el) { el.classList.add("selected"); el.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+    }
+
+    function qv(obj, ...keys) {
+      for (const key of keys) {
+        const value = obj?.[key];
+        if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
+      }
+      return "";
     }
 
     function esc(v) {
