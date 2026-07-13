@@ -19,7 +19,7 @@
   <title>Administration | Moventra Transport</title>
   <link rel="icon" href="logo.jpeg">
   <link rel="stylesheet" href="style.css?v=adminfix-20260713-1">
-  <link rel="stylesheet" href="admin.css?v=adminfix-20260713-1">
+  <link rel="stylesheet" href="admin.css?v=menufix-20260713-2">
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" href="logo.jpeg">
   <meta name="theme-color" content="#006bd6">
@@ -48,7 +48,7 @@
     </div>
 
     <!-- Menu mobile -->
-    <button class="adminMenuToggle" id="adminMenuToggle">☰</button>
+    <button class="adminMenuToggle" id="adminMenuToggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
     <div class="adminMenuDropdown" id="adminMenuDropdown">
       <a href="historique.html" class="smallBtn ok">📋 Historique</a>
       <a href="dispatch.html" class="smallBtn" style="background:#0062ff;color:white">🗺️ Dispatch</a>
@@ -188,9 +188,17 @@
   const toggle=document.getElementById('adminMenuToggle');
   const menu=document.getElementById('adminMenuDropdown');
   if(toggle&&menu){
-    toggle.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();menu.classList.toggle('open');});
+    toggle.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const isOpen=menu.classList.toggle('open');
+      toggle.setAttribute('aria-expanded',String(isOpen));
+    });
     menu.addEventListener('click',function(e){e.stopPropagation();});
-    document.addEventListener('click',function(){menu.classList.remove('open');});
+    document.addEventListener('click',function(){
+      menu.classList.remove('open');
+      toggle.setAttribute('aria-expanded','false');
+    });
   }
   window.addEventListener('error',function(e){
     const box=document.getElementById('notificationStatus');
@@ -198,7 +206,7 @@
   });
 })();
 </script>
-  <script type="module" src="admin-v3.js?v=20260713-0055"></script>
+  <script type="module" src="admin-v3.js?v=menufix-20260713-2"></script>
 <script src="pwa.js?v=20260713-0055"></script>
 <script src="push.js?v=20260713-0055" defer></script>
 

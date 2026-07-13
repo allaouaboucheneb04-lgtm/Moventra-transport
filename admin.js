@@ -564,17 +564,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ========== MENU MOBILE BURGER ==========
-const adminMenuToggle = document.getElementById("adminMenuToggle");
-const adminMenuDropdown = document.getElementById("adminMenuDropdown");
-
-if (adminMenuToggle && adminMenuDropdown) {
-  adminMenuToggle.onclick = (e) => {
-    e.stopPropagation();
-    adminMenuDropdown.classList.toggle("open");
-  };
-  document.addEventListener("click", () => adminMenuDropdown.classList.remove("open"));
-  adminMenuDropdown.addEventListener("click", e => e.stopPropagation());
-}
+// Le menu est géré une seule fois par le script intégré dans admin.html.
+// Ne pas ajouter un deuxième gestionnaire ici : deux clics successifs
+// ouvraient puis refermaient immédiatement le menu sur iPhone.
 
 // Câbler boutons mobile
 const logoutBtnMobile = document.getElementById("logoutBtnMobile");
