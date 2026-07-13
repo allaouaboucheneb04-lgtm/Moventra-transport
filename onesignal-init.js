@@ -18,7 +18,7 @@ function didierNotifStatus(message, ok = true) {
 OneSignalDeferred.push(async function(OneSignal) {
   try {
     await OneSignal.init({
-      appId: "b7dc3eab-b127-47dd-9ad4-71295880fd34",
+      appId: "a6edf32a-9d3b-4fce-ad98-0c5ccfc43672",
       serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
       serviceWorkerParam: { scope: "/Moventra-transport/push/onesignal/" },
       notifyButton: { enable: false }
