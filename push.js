@@ -83,7 +83,7 @@ function loadOneSignalSdkOnce() {
       try {
         await OneSignal.init({
           appId: DIDIER_ONESIGNAL_APP_ID,
-          serviceWorkerPath: "/Moventra-transport/OneSignalSDKWorker.js",
+          serviceWorkerPath: "Moventra-transport/OneSignalSDKWorker.js",
           serviceWorkerParam: { scope: "/Moventra-transport/" },
           notifyButton: { enable: false },
           welcomeNotification: { disable: true }
