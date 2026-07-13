@@ -423,3 +423,16 @@ body.adminBody{background:#eef6ff;color:#071f3d;padding-bottom:0}.adminTop{posit
 .smallBtn.danger {
   background: #d21f3c;
 }
+
+/* MOVENTRA ADMIN BRANDING */
+.adminTop{border-bottom:3px solid #0b46b5}
+.adminBrand strong{color:#071f3d;font-weight:950}
+.adminBrand span{font-size:.88rem}
+.adminHero{background:linear-gradient(135deg,#061a33 0%,#0b46b5 58%,#0879f9 100%)}
+@media(max-width:850px){
+  .adminBrand{max-width:72%}
+  .adminBrand strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .adminMenuToggle{display:flex}
+  .adminActionsClean{display:none}
+}
+@media(display-mode:standalone){body.adminBody{padding-top:env(safe-area-inset-top)}}

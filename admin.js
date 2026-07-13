@@ -190,7 +190,7 @@ if (inviteForm) {
 
       // Email invite link
       const emailBtn = $("emailInvite");
-      if (emailBtn) emailBtn.href = `mailto:${cleanEmail}?subject=Invitation%20Didier.Elo&body=Voici%20ton%20lien%20d%27invitation%20:%20${encodeURIComponent(link)}`;
+      if (emailBtn) emailBtn.href = `mailto:${cleanEmail}?subject=Invitation%20Moventra%20Transport&body=Voici%20ton%20lien%20d%27invitation%20:%20${encodeURIComponent(link)}`;
 
       e.target.reset();
     } catch (error) {
