@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Debug Push Moventra Transport</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+body{font-family:Arial;padding:20px;background:#eef6ff;color:#08203d}
+button{font-size:20px;padding:14px 18px;border-radius:12px;border:0;background:#0875d1;color:white;font-weight:900;margin:8px 0}
+pre{background:white;padding:14px;border-radius:12px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>Debug Push Moventra Transport</h1>
+<button onclick="didierEloEnablePush()">🔔 Activer notifications</button>
+<button onclick="runDebug()">Tester fichiers / état</button>
+<pre id="out">Clique Tester.</pre>
+<script src="push.js?v=moventra4" defer></script>
+<script>
+async function runDebug(){
+  const out=document.getElementById('out');
+  out.textContent='Test...';
+  setTimeout(async()=>{
+    try{
+      const info=await window.didierEloPushDebugInfo();
+      out.textContent=JSON.stringify(info,null,2);
+    }catch(e){out.textContent=e.message}
+  },1000);
+}
+</script>
+</body>
+</html>
