@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promotions | Didier.Elo Admin</title>
+  <link rel="icon" href="logo.jpeg">
+  <link rel="stylesheet" href="style.css?v=v4">
+  <link rel="stylesheet" href="admin.css?v=v4">
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    .promoPreview {
+      background: linear-gradient(135deg, #0a1628, #0d2145);
+      border-radius: 24px; padding: 40px; color: white; max-width: 600px;
+      margin: 0 auto; text-align: center;
+    }
+    .promoPreview img { width: 80px; height: 80px; border-radius: 20px; margin: 0 auto 20px; display: block; }
+    .promoPreview h2 { font-size: 1.8rem; margin-bottom: 12px; }
+    .promoPreview .code {
+      display: inline-block; background: linear-gradient(135deg, #00b4ff, #0062ff);
+      padding: 12px 28px; border-radius: 14px; font-size: 1.5rem;
+      font-weight: 900; letter-spacing: 3px; margin: 16px 0;
+    }
+    .promoPreview p { color: rgba(255,255,255,.75); line-height: 1.7; }
+    .clientCheckItem {
+      display: flex; align-items: center; gap: 12px;
+      background: #f8fcff; border: 1px solid #e0ecff;
+      border-radius: 14px; padding: 12px 16px; margin-bottom: 8px;
+      cursor: pointer; transition: border-color .2s;
+    }
+    .clientCheckItem:hover { border-color: #006bd6; }
+    .clientCheckItem input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .clientCheckItem label { flex: 1; cursor: pointer; }
+    .clientCheckItem label strong { display: block; color: #0a1628; font-size: .95rem; }
+    .clientCheckItem label span { color: #60758d; font-size: .85rem; }
+    .selectAllBar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; padding: 10px 0;
+    }
+  </style>
+</head>
+<body class="adminBody">
+  <header class="adminTop adminTopClean">
+    <div class="adminBrand">
+      <img src="logo.jpeg" alt="Didier.Elo">
+      <div><strong>Promotions</strong><span id="adminEmail">Chargement...</span></div>
+    </div>
+    <div class="adminActionsClean">
+      <a href="admin.html" class="smallBtn">← Admin</a>
+      <button id="logoutBtn" class="smallBtn danger">Déco</button>
+    </div>
+  </header>
+
+  <main class="adminMain">
+    <section class="adminHero">
+      <span class="adminBadge">Marketing</span>
+      <h1>Envoyer des promotions</h1>
+      <p>Envoyez des offres spéciales à vos clients existants par email.</p>
+    </section>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+      <!-- Créer promotion -->
+      <section class="panel">
+        <div class="panelHead">
+          <div><span class="adminBadge">Création</span><h2>Créer une promotion</h2></div>
+        </div>
+        <div class="adminForm" style="display:grid;gap:14px">
+          <label style="display:grid;gap:6px;font-weight:800;color:#40566e;font-size:.9rem">
+            Titre de la promotion *
+            <input id="promoTitre" type="text" placeholder="Ex: Spécial printemps — 15% de rabais !" oninput="updatePreview()">
+          </label>
+          <label style="display:grid;gap:6px;font-weight:800;color:#40566e;font-size:.9rem">
+            Message *
+            <textarea id="promoMessage" rows="4" placeholder="Ex: Profitez de notre offre spéciale de printemps. Grand ménage à partir de 125$ au lieu de 150$." oninput="updatePreview()"></textarea>
+          </label>
+          <label style="display:grid;gap:6px;font-weight:800;color:#40566e;font-size:.9rem">
+            Code promo (optionnel)
+            <input id="promoCode" type="text" placeholder="Ex: PRINTEMPS15" style="text-transform:uppercase" oninput="updatePreview()">
+          </label>
+          <label style="display:grid;gap:6px;font-weight:800;color:#40566e;font-size:.9rem">
+            Date d'expiration (optionnel)
+            <input id="promoExpiry" type="date" oninput="updatePreview()">
+          </label>
+          <label style="display:grid;gap:6px;font-weight:800;color:#40566e;font-size:.9rem">
+            Lien d'action
+            <input id="promoLien" type="url" value="https://www.didiereloservices.com/#soumission" oninput="updatePreview()">
+          </label>
+        </div>
+
+        <!-- Aperçu -->
+        <div style="margin-top:20px">
+          <p style="font-weight:800;color:#40566e;font-size:.88rem;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Aperçu email</p>
+          <div class="promoPreview" id="promoPreview">
+            <img src="logo.jpeg" alt="Didier.Elo">
+            <h2 id="prevTitre">Titre de votre promotion</h2>
+            <p id="prevMessage">Votre message apparaîtra ici.</p>
+            <div class="code" id="prevCode" style="display:none"></div>
+            <p id="prevExpiry" style="font-size:.85rem;opacity:.7;display:none"></p>
+            <a href="#" style="display:inline-block;margin-top:20px;background:linear-gradient(135deg,#00b4ff,#0062ff);color:white;padding:14px 28px;border-radius:14px;font-weight:800;text-decoration:none">Demander une soumission →</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sélectionner clients -->
+      <section class="panel">
+        <div class="panelHead">
+          <div><span class="adminBadge">Destinataires</span><h2>Choisir les clients</h2></div>
+        </div>
+
+        <div class="searchBar" style="margin-bottom:14px">
+          <input id="searchClients" type="search" placeholder="🔍 Rechercher un client...">
+        </div>
+
+        <div class="selectAllBar">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:800;font-size:.9rem">
+            <input type="checkbox" id="selectAll" style="width:18px;height:18px">
+            Tout sélectionner
+          </label>
+          <span id="selectedCount" style="color:#60758d;font-size:.88rem;font-weight:700">0 sélectionné(s)</span>
+        </div>
+
+        <div id="clientsList" style="max-height:380px;overflow-y:auto">
+          <p>Chargement des clients...</p>
+        </div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e0ecff">
+          <button class="smallBtn ok" id="btnEnvoyerPromo" style="width:100%;padding:16px;font-size:1rem">
+            📧 Envoyer la promotion aux clients sélectionnés
+          </button>
+          <p id="promoStatus" class="adminStatus" style="margin-top:10px;text-align:center"></p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { firebaseConfig, ROLES_COLLECTION, QUOTES_COLLECTION } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let allClients = [];
+
+    emailjs.init({ publicKey: "n4Ln13zFITFZtnmdL" });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { location.replace("login.html"); return; }
+      document.getElementById("adminEmail").textContent = user.email;
+      const roleSnap = await getDoc(doc(db, ROLES_COLLECTION, user.uid));
+      if (!roleSnap.exists() || roleSnap.data().role !== "admin") {
+        await signOut(auth); location.replace("login.html"); return;
+      }
+      document.getElementById("logoutBtn").onclick = async () => { await signOut(auth); location.replace("login.html"); };
+      await loadClients();
+    });
+
+    async function loadClients() {
+      const snap = await getDocs(collection(db, QUOTES_COLLECTION));
+      const seen = new Set();
+      allClients = [];
+      snap.forEach(d => {
+        const data = d.data();
+        const email = (data.email || "").toLowerCase().trim();
+        if (email && !seen.has(email)) {
+          seen.add(email);
+          allClients.push({ id: d.id, ...data });
+        }
+      });
+      renderClients(allClients);
+    }
+
+    function renderClients(clients) {
+      const el = document.getElementById("clientsList");
+      if (!clients.length) { el.innerHTML = "<p style='color:#60758d'>Aucun client avec email.</p>"; return; }
+      el.innerHTML = clients.map(c => `
+        <div class="clientCheckItem">
+          <input type="checkbox" id="chk-${c.id}" value="${c.id}" onchange="updateCount()">
+          <label for="chk-${c.id}">
+            <strong>${esc(c.name || c.nom || "Sans nom")}</strong>
+            <span>${esc(c.email || "")} • ${esc(c.service || "")}</span>
+          </label>
+        </div>`).join("");
+    }
+
+    window.updateCount = function() {
+      const count = document.querySelectorAll("#clientsList input[type=checkbox]:checked").length;
+      document.getElementById("selectedCount").textContent = count + " sélectionné(s)";
+    };
+
+    document.getElementById("selectAll").onchange = function() {
+      document.querySelectorAll("#clientsList input[type=checkbox]").forEach(cb => cb.checked = this.checked);
+      updateCount();
+    };
+
+    document.getElementById("searchClients").addEventListener("input", function() {
+      const q = this.value.toLowerCase();
+      const filtered = allClients.filter(c =>
+        (c.name || c.nom || "").toLowerCase().includes(q) ||
+        (c.email || "").toLowerCase().includes(q)
+      );
+      renderClients(filtered);
+    });
+
+    window.updatePreview = function() {
+      document.getElementById("prevTitre").textContent = document.getElementById("promoTitre").value || "Titre de votre promotion";
+      document.getElementById("prevMessage").textContent = document.getElementById("promoMessage").value || "Votre message apparaîtra ici.";
+      const code = document.getElementById("promoCode").value.toUpperCase();
+      const codeEl = document.getElementById("prevCode");
+      codeEl.textContent = code; codeEl.style.display = code ? "inline-block" : "none";
+      const expiry = document.getElementById("promoExpiry").value;
+      const expiryEl = document.getElementById("prevExpiry");
+      expiryEl.textContent = expiry ? "Valide jusqu'au " + expiry : "";
+      expiryEl.style.display = expiry ? "block" : "none";
+    };
+
+    document.getElementById("btnEnvoyerPromo").onclick = async () => {
+      const titre = document.getElementById("promoTitre").value.trim();
+      const message = document.getElementById("promoMessage").value.trim();
+      if (!titre || !message) { alert("Remplissez le titre et le message."); return; }
+
+      const checked = [...document.querySelectorAll("#clientsList input[type=checkbox]:checked")];
+      if (!checked.length) { alert("Sélectionnez au moins un client."); return; }
+
+      const status = document.getElementById("promoStatus");
+      const btn = document.getElementById("btnEnvoyerPromo");
+      btn.disabled = true; status.textContent = "Envoi en cours..."; status.style.color = "#006bd6";
+
+      let success = 0, errors = 0;
+      for (const cb of checked) {
+        const client = allClients.find(c => c.id === cb.value);
+        if (!client?.email) continue;
+        try {
+          await emailjs.send("service_yxizoav", "template_promo", {
+            to_email: client.email,
+            to_name: client.name || client.nom || "Client",
+            promo_titre: titre,
+            promo_message: message,
+            promo_code: document.getElementById("promoCode").value.toUpperCase() || "Aucun",
+            promo_expiry: document.getElementById("promoExpiry").value || "Aucune",
+            promo_lien: document.getElementById("promoLien").value
+          });
+          success++;
+          await new Promise(r => setTimeout(r, 300));
+        } catch(e) { errors++; }
+      }
+
+      btn.disabled = false;
+      status.textContent = `✅ ${success} email(s) envoyé(s)${errors ? " — ❌ " + errors + " erreur(s)" : ""}`;
+      status.style.color = errors ? "#c87000" : "#078b45";
+    };
+
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dispatch | Didier.Elo Admin</title>
+  <link rel="icon" href="logo.jpeg">
+  <link rel="stylesheet" href="style.css?v=v4">
+  <link rel="stylesheet" href="admin.css?v=v4">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="logo.jpeg">
+  <meta name="theme-color" content="#006bd6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Didier.Elo">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    /* ===== DISPATCH PAGE ===== */
+    .dispatchLayout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 0;
+      height: calc(100vh - 70px);
+      overflow: hidden;
+    }
+
+    /* Panneau gauche */
+    .dispatchPanel {
+      background: white;
+      border-right: 1px solid #e0ecff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .dispatchPanelHeader {
+      padding: 20px 20px 0;
+      flex-shrink: 0;
+    }
+    .dispatchPanelHeader h2 {
+      font-size: 1.1rem;
+      color: #0a1628;
+      margin-bottom: 14px;
+    }
+    .dispatchTabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .dispatchTab {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #e0ecff;
+      border-radius: 12px;
+      background: white;
+      font-weight: 800;
+      font-size: .85rem;
+      color: #60758d;
+      cursor: pointer;
+      text-align: center;
+      transition: all .2s;
+    }
+    .dispatchTab.active {
+      background: #006bd6;
+      border-color: #006bd6;
+      color: white;
+    }
+    .dispatchPanelBody {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 16px;
+    }
+
+    /* Cartes travaux */
+    .dispatchCard {
+      background: #f8fcff;
+      border: 2px solid #e0ecff;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color .2s, transform .2s, box-shadow .2s;
+    }
+    .dispatchCard:hover {
+      border-color: #006bd6;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,107,214,.12);
+    }
+    .dispatchCard.selected {
+      border-color: #006bd6;
+      background: #eef8ff;
+    }
+    .dispatchCard.assigned {
+      border-color: #c8f0d8;
+      background: #f0fff6;
+    }
+    .dispatchCardTop {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .dispatchCardTop h3 {
+      font-size: 1rem;
+      color: #0a1628;
+    }
+    .dispatchCardBadge {
+      font-size: .75rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .dispatchCardBadge.nouveau { background: #fff4e0; color: #c87000; }
+    .dispatchCardBadge.assigné { background: #e0f9ec; color: #078b45; }
+    .dispatchCard p {
+      font-size: .85rem;
+      color: #60758d;
+      margin-bottom: 4px;
+    }
+    .dispatchCard .cardAddress {
+      font-weight: 700;
+      color: #0062ff;
+      font-size: .88rem;
+    }
+    .dispatchCardActions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .dispatchCardActions select {
+      flex: 1;
+      border: 2px solid #d3e4f5;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font: inherit;
+      font-size: .85rem;
+      background: white;
+    }
+    .dispatchCardActions button {
+      border: 0;
+      background: #006bd6;
+      color: white;
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-weight: 800;
+      font-size: .82rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .2s;
+    }
+    .dispatchCardActions button:hover { background: #0055b3; }
+
+    /* Cartes employés */
+    .employeeCard {
+      background: #f8fcff;
+      border: 2px solid #e0ecff;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color .2s, transform .2s;
+    }
+    .employeeCard:hover {
+      border-color: #006bd6;
+      transform: translateY(-2px);
+    }
+    .employeeCard.selected { border-color: #006bd6; background: #eef8ff; }
+    .employeeCardTop {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .employeeAvatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #006bd6, #00a8ff);
+      color: white;
+      font-weight: 900;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .employeeCard h3 { font-size: 1rem; color: #0a1628; }
+    .employeeCard p { font-size: .85rem; color: #60758d; }
+    .employeeTaskCount {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eef8ff;
+      color: #006bd6;
+      font-weight: 800;
+      font-size: .8rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-top: 8px;
+    }
+
+    /* Carte */
+    .dispatchMap {
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Légende carte */
+    .mapLegend {
+      position: absolute;
+      top: 80px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      border-radius: 16px;
+      padding: 14px 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.15);
+      font-size: .82rem;
+    }
+    .legendItem {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-weight: 700;
+      color: #40566e;
+    }
+    .legendItem:last-child { margin-bottom: 0; }
+    .legendDot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Info panel carte */
+    .mapInfoBar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: white;
+      border-top: 1px solid #e0ecff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: .88rem;
+    }
+    .mapInfoBar span { color: #60758d; font-weight: 600; }
+    .mapInfoBar strong { color: #0a1628; }
+
+    /* Loading */
+    .dispatchLoading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #60758d;
+      font-weight: 700;
+    }
+
+    /* Responsive */
+    @media(max-width: 850px) {
+      .dispatchLayout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .dispatchPanel {
+        height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid #e0ecff;
+      }
+      .dispatchMap { height: 50vh; }
+    }
+  </style>
+</head>
+<body class="adminBody">
+
+  <header class="adminTop adminTopClean">
+    <div class="adminBrand">
+      <img src="logo.jpeg" alt="Didier.Elo">
+      <div>
+        <strong>Dispatch</strong>
+        <span id="adminEmail">Chargement...</span>
+      </div>
+    </div>
+    <div class="adminActionsClean">
+      <a href="admin.html" class="smallBtn">← Admin</a>
+      <button id="refreshDispatch" class="smallBtn">🔄 Rafraîchir</button>
+      <button id="logoutBtn" class="smallBtn danger">Déco</button>
+    </div>
+  </header>
+
+  <div class="dispatchLayout">
+
+    <!-- Panneau gauche -->
+    <div class="dispatchPanel">
+      <div class="dispatchPanelHeader">
+        <h2>Gestion des travaux</h2>
+        <div class="dispatchTabs">
+          <button class="dispatchTab active" data-tab="travaux">📋 Travaux (<span id="tabCountTravaux">0</span>)</button>
+          <button class="dispatchTab" data-tab="employes">👥 Employés (<span id="tabCountEmployes">0</span>)</button>
+        </div>
+      </div>
+      <div class="dispatchPanelBody">
+        <div id="travauxTab">
+          <div class="dispatchLoading">Chargement des travaux...</div>
+        </div>
+        <div id="employesTab" style="display:none">
+          <div class="dispatchLoading">Chargement des employés...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carte -->
+    <div style="position:relative; flex:1;">
+      <div id="dispatchMap" class="dispatchMap"></div>
+
+      <!-- Légende -->
+      <div class="mapLegend">
+        <div class="legendItem"><div class="legendDot" style="background:#e74c3c"></div> Soumissions</div>
+        <div class="legendItem"><div class="legendDot" style="background:#f39c12"></div> Travaux assignés</div>
+        <div class="legendItem"><div class="legendDot" style="background:#2ecc71"></div> Employés</div>
+      </div>
+
+      <!-- Info bar -->
+      <div class="mapInfoBar">
+        <span>Cliquez sur un marqueur pour voir les détails</span>
+        <strong id="mapInfoText"></strong>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getFirestore, collection, getDocs, doc, getDoc,
+      addDoc, updateDoc, query, orderBy, serverTimestamp, where
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { firebaseConfig, ROLES_COLLECTION, QUOTES_COLLECTION, TASKS_COLLECTION } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let map, employees = [], quotes = [], tasks = [];
+    let markers = [];
+    let currentUser = null;
+
+    // ===== AUTH =====
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { location.replace("login.html"); return; }
+      currentUser = user;
+      document.getElementById("adminEmail").textContent = user.email;
+
+      const roleSnap = await getDoc(doc(db, ROLES_COLLECTION, user.uid));
+      if (!roleSnap.exists() || roleSnap.data().role !== "admin") {
+        alert("Accès refusé.");
+        await signOut(auth);
+        location.replace("login.html");
+        return;
+      }
+
+      document.getElementById("logoutBtn").onclick = async () => {
+        await signOut(auth); location.replace("login.html");
+      };
+
+      initMap();
+      await loadAll();
+    });
+
+    // ===== CARTE =====
+    function initMap() {
+      map = L.map("dispatchMap").setView([45.6066, -73.7124], 11);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap"
+      }).addTo(map);
+    }
+
+    // ===== GÉOCODAGE =====
+    async function geocode(address) {
+      if (!address) return null;
+      try {
+        const query = encodeURIComponent(address + ", Québec, Canada");
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`, {
+          headers: { "Accept-Language": "fr" }
+        });
+        const data = await res.json();
+        if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      } catch(e) { console.warn("Geocode error:", e); }
+      return null;
+    }
+
+    // ===== MARQUEURS =====
+    function makeIcon(color, letter) {
+      return L.divIcon({
+        html: `<div style="
+          width:36px;height:36px;border-radius:50% 50% 50% 0;
+          background:${color};transform:rotate(-45deg);
+          border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,.25);
+          display:flex;align-items:center;justify-content:center;
+        "><span style="transform:rotate(45deg);color:white;font-weight:900;font-size:13px">${letter}</span></div>`,
+        className: "",
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
+      });
+    }
+
+    function clearMarkers() {
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+    }
+
+    async function addMarkersForQuotes() {
+      for (const q of quotes) {
+        if (!q.address) continue;
+        const coords = await geocode(q.address);
+        if (!coords) continue;
+        const marker = L.marker([coords.lat, coords.lng], {
+          icon: makeIcon("#e74c3c", "S")
+        }).addTo(map);
+        marker.bindPopup(`
+          <div style="min-width:200px">
+            <strong style="font-size:1rem">📋 ${q.name || "Client"}</strong><br>
+            <span style="color:#60758d;font-size:.85rem">${q.service || "-"}</span><br>
+            <span style="font-size:.85rem">📍 ${q.address}</span><br>
+            <span style="font-size:.85rem">📞 ${q.phone || "-"}</span>
+          </div>
+        `);
+        marker.on("click", () => {
+          document.getElementById("mapInfoText").textContent = `Soumission : ${q.name} — ${q.address}`;
+          highlightCard("quote-" + q.id);
+        });
+        markers.push(marker);
+      }
+    }
+
+    async function addMarkersForTasks() {
+      for (const t of tasks) {
+        if (!t.address) continue;
+        const coords = await geocode(t.address);
+        if (!coords) continue;
+        const marker = L.marker([coords.lat, coords.lng], {
+          icon: makeIcon("#f39c12", "T")
+        }).addTo(map);
+        marker.bindPopup(`
+          <div style="min-width:200px">
+            <strong style="font-size:1rem">🔧 ${t.clientName || "Client"}</strong><br>
+            <span style="color:#60758d;font-size:.85rem">${t.service || "-"}</span><br>
+            <span style="font-size:.85rem">📍 ${t.address}</span><br>
+            <span style="font-size:.85rem">👷 ${t.employeeName || "-"}</span>
+          </div>
+        `);
+        markers.push(marker);
+      }
+    }
+
+    async function addMarkersForEmployees() {
+      for (const emp of employees) {
+        if (!emp.address && !emp.zone) continue;
+        const addr = emp.address || emp.zone;
+        const coords = await geocode(addr + ", Québec");
+        if (!coords) continue;
+        const initial = (emp.name || emp.email || "?")[0].toUpperCase();
+        const marker = L.marker([coords.lat, coords.lng], {
+          icon: makeIcon("#2ecc71", initial)
+        }).addTo(map);
+        const taskCount = tasks.filter(t => t.employeeId === emp.id).length;
+        marker.bindPopup(`
+          <div style="min-width:200px">
+            <strong style="font-size:1rem">👷 ${emp.name || emp.email}</strong><br>
+            <span style="color:#60758d;font-size:.85rem">${addr}</span><br>
+            <span style="font-size:.85rem">📋 ${taskCount} travail(s) assigné(s)</span>
+          </div>
+        `);
+        marker.on("click", () => {
+          document.getElementById("mapInfoText").textContent = `Employé : ${emp.name || emp.email} — ${taskCount} travaux`;
+        });
+        markers.push(marker);
+      }
+    }
+
+    // ===== CHARGEMENT =====
+    async function loadAll() {
+      document.getElementById("travauxTab").innerHTML = '<div class="dispatchLoading">⏳ Chargement...</div>';
+      document.getElementById("employesTab").innerHTML = '<div class="dispatchLoading">⏳ Chargement...</div>';
+      clearMarkers();
+
+      await Promise.all([loadEmployees(), loadQuotes(), loadTasks()]);
+      renderTravauxPanel();
+      renderEmployesPanel();
+
+      // Marqueurs en parallèle
+      await Promise.all([
+        addMarkersForQuotes(),
+        addMarkersForTasks(),
+        addMarkersForEmployees()
+      ]);
+    }
+
+    async function loadEmployees() {
+      const snap = await getDocs(collection(db, ROLES_COLLECTION));
+      employees = [];
+      snap.forEach(d => {
+        const data = d.data();
+        if (data.role === "employe") employees.push({ id: d.id, ...data });
+      });
+      document.getElementById("tabCountEmployes").textContent = employees.length;
+    }
+
+    async function loadQuotes() {
+      try {
+        const snap = await getDocs(query(collection(db, QUOTES_COLLECTION), orderBy("createdAt", "desc")));
+        quotes = [];
+        snap.forEach(d => {
+          const data = d.data();
+          if (!data.status || data.status === "nouveau") quotes.push({ id: d.id, ...data });
+        });
+      } catch {
+        const snap = await getDocs(collection(db, QUOTES_COLLECTION));
+        quotes = [];
+        snap.forEach(d => {
+          const data = d.data();
+          if (!data.status || data.status === "nouveau") quotes.push({ id: d.id, ...data });
+        });
+      }
+    }
+
+    async function loadTasks() {
+      try {
+        const snap = await getDocs(query(collection(db, TASKS_COLLECTION), orderBy("createdAt", "desc")));
+        tasks = [];
+        snap.forEach(d => {
+          const data = d.data();
+          if (data.status !== "terminé") tasks.push({ id: d.id, ...data });
+        });
+        document.getElementById("tabCountTravaux").textContent = quotes.length + tasks.length;
+      } catch {
+        tasks = [];
+      }
+    }
+
+    // ===== RENDER PANNEAUX =====
+    function renderTravauxPanel() {
+      const container = document.getElementById("travauxTab");
+      let html = "";
+
+      if (quotes.length === 0 && tasks.length === 0) {
+        container.innerHTML = '<div class="dispatchLoading">✅ Aucun travail en attente.</div>';
+        return;
+      }
+
+      // Soumissions non assignées
+      if (quotes.length > 0) {
+        html += `<p style="font-weight:800;color:#60758d;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Soumissions (${quotes.length})</p>`;
+        quotes.forEach(q => {
+          const opts = employees.map(e => `<option value="${e.id}">${e.name || e.email}</option>`).join("");
+          html += `
+            <div class="dispatchCard" id="quote-${q.id}" data-type="quote" data-id="${q.id}">
+              <div class="dispatchCardTop">
+                <h3>${esc(q.name || "Client")}</h3>
+                <span class="dispatchCardBadge nouveau">Nouveau</span>
+              </div>
+              <p>🧹 ${esc(q.service || "-")}</p>
+              <p class="cardAddress">📍 ${esc(q.address || "Adresse non fournie")}</p>
+              <p>📞 ${esc(q.phone || "-")}</p>
+              ${q.date ? `<p>📅 ${esc(q.date)}</p>` : ""}
+              <div class="dispatchCardActions">
+                <select class="empSelect-${q.id}">
+                  <option value="">Choisir employé</option>
+                  ${opts}
+                </select>
+                <button data-assign="${q.id}" data-type="quote">✅ Assigner</button>
+              </div>
+            </div>`;
+        });
+      }
+
+      // Travaux assignés actifs
+      if (tasks.length > 0) {
+        html += `<p style="font-weight:800;color:#60758d;font-size:.82rem;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">Travaux actifs (${tasks.length})</p>`;
+        tasks.forEach(t => {
+          html += `
+            <div class="dispatchCard assigned" id="task-${t.id}">
+              <div class="dispatchCardTop">
+                <h3>${esc(t.clientName || "Client")}</h3>
+                <span class="dispatchCardBadge assigné">${esc(t.status || "assigné")}</span>
+              </div>
+              <p>🧹 ${esc(t.service || "-")}</p>
+              <p class="cardAddress">📍 ${esc(t.address || "-")}</p>
+              <p>👷 ${esc(t.employeeName || "-")}</p>
+            </div>`;
+        });
+      }
+
+      container.innerHTML = html;
+
+      // Boutons assigner
+      container.querySelectorAll("[data-assign]").forEach(btn => {
+        btn.onclick = () => assignFromDispatch(btn.dataset.assign, btn.dataset.type);
+      });
+
+      // Clic carte → marqueur
+      container.querySelectorAll(".dispatchCard").forEach(card => {
+        card.onclick = (e) => {
+          if (e.target.tagName === "BUTTON" || e.target.tagName === "SELECT") return;
+          document.querySelectorAll(".dispatchCard").forEach(c => c.classList.remove("selected"));
+          card.classList.add("selected");
+        };
+      });
+    }
+
+    function renderEmployesPanel() {
+      const container = document.getElementById("employesTab");
+      if (employees.length === 0) {
+        container.innerHTML = '<div class="dispatchLoading">Aucun employé trouvé.</div>';
+        return;
+      }
+      let html = "";
+      employees.forEach(emp => {
+        const taskCount = tasks.filter(t => t.employeeId === emp.id).length;
+        const initial = (emp.name || emp.email || "?")[0].toUpperCase();
+        html += `
+          <div class="employeeCard" id="emp-${emp.id}">
+            <div class="employeeCardTop">
+              <div class="employeeAvatar">${initial}</div>
+              <div>
+                <h3>${esc(emp.name || emp.email)}</h3>
+                <p>${esc(emp.email || "")}</p>
+              </div>
+            </div>
+            <span class="employeeTaskCount">📋 ${taskCount} travail${taskCount !== 1 ? "s" : ""} actif${taskCount !== 1 ? "s" : ""}</span>
+          </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    // ===== ASSIGNER =====
+    async function assignFromDispatch(quoteId, type) {
+      const select = document.querySelector(`.empSelect-${quoteId}`);
+      if (!select || !select.value) { alert("Choisis un employé."); return; }
+      const emp = employees.find(e => e.id === select.value);
+      if (!emp) return;
+
+      const q = quotes.find(x => x.id === quoteId);
+      if (!q) return;
+
+      try {
+        // Créer la tâche
+        await addDoc(collection(db, TASKS_COLLECTION), {
+          quoteId,
+          clientName: q.name || "",
+          phone: q.phone || "",
+          email: q.email || "",
+          service: q.service || "",
+          address: q.address || "",
+          date: q.date || "",
+          message: q.message || "",
+          employeeId: emp.id,
+          employeeName: emp.name || emp.email || "Employé",
+          employeeEmail: emp.email || "",
+          status: "assigné",
+          createdAt: serverTimestamp(),
+          assignedBy: currentUser.uid
+        });
+
+        // Mettre à jour la soumission
+        await updateDoc(doc(db, QUOTES_COLLECTION, quoteId), {
+          status: "assigné",
+          assignedTo: emp.id,
+          assignedToName: emp.name || emp.email
+        });
+
+        alert(`✅ Travail assigné à ${emp.name || emp.email} !`);
+        await loadAll();
+      } catch(e) {
+        alert("Erreur: " + e.message);
+      }
+    }
+
+    // ===== TABS =====
+    document.querySelectorAll(".dispatchTab").forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll(".dispatchTab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById("travauxTab").style.display = tab.dataset.tab === "travaux" ? "block" : "none";
+        document.getElementById("employesTab").style.display = tab.dataset.tab === "employes" ? "block" : "none";
+      };
+    });
+
+    // Rafraîchir
+    document.getElementById("refreshDispatch").onclick = loadAll;
+
+    // ===== HELPERS =====
+    function highlightCard(id) {
+      document.querySelectorAll(".dispatchCard").forEach(c => c.classList.remove("selected"));
+      const el = document.getElementById(id);
+      if (el) { el.classList.add("selected"); el.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+    }
+
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+    }
+  </script>
+</body>
+</html>
