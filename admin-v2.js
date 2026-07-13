@@ -366,7 +366,6 @@ function renderQuotes() {
       btn.textContent = "✅"; setTimeout(() => btn.textContent = "💾 Note", 2000);
     };
   });
-  });
 }
 
 function quoteCard(q) {
