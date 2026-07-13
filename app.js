@@ -64,15 +64,40 @@ form?.addEventListener("submit", async (event) => {
   statusEl.textContent = "";
 
   try {
-    const docRef = await addDoc(collection(db, "demandes_soumission"), {
+    const submission = {
       ...data,
+      // Champs canoniques utilisés par l’administration
+      nom: data.name || "",
+      telephone: data.phone || "",
+      courriel: data.email || "",
+      depart: data.address || "",
+      typeLogement: data.propertyType || "",
+      etageDepart: data.startFloor || "",
+      etageArrivee: data.endFloor || "",
+      details: data.message || "",
+      status: "nouveau",
       source: "site_moventra",
       createdAt: serverTimestamp()
-    });
+    };
+
+    const docRef = await addDoc(collection(db, "demandes_soumission"), submission);
 
     const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
     if (window.emailjs) {
-      secondaryTasks.push(emailjs.send("service_o6bm6tl","template_c0smolo", data));
+      secondaryTasks.push(emailjs.send("service_o6bm6tl", "template_c0smolo", {
+        nom: data.name || "",
+        telephone: data.phone || "",
+        email: data.email || "",
+        service: data.service || "",
+        date: data.date || "",
+        typeLogement: data.propertyType || "",
+        depart: data.address || "",
+        destination: data.destination || "",
+        etageDepart: data.startFloor || "",
+        etageArrivee: data.endFloor || "",
+        details: data.message || "",
+        submissionId: docRef.id
+      }));
     }
 
     const results = await Promise.allSettled(secondaryTasks);

@@ -270,10 +270,12 @@ function renderQuotes() {
   // Recherche
   if (searchQuery) {
     filtered = filtered.filter(q =>
-      (q.name || "").toLowerCase().includes(searchQuery) ||
-      (q.service || "").toLowerCase().includes(searchQuery) ||
-      (q.phone || "").toLowerCase().includes(searchQuery) ||
-      (q.email || "").toLowerCase().includes(searchQuery)
+      quoteValue(q, "name", "nom").toLowerCase().includes(searchQuery) ||
+      quoteValue(q, "service").toLowerCase().includes(searchQuery) ||
+      quoteValue(q, "phone", "telephone").toLowerCase().includes(searchQuery) ||
+      quoteValue(q, "email", "courriel").toLowerCase().includes(searchQuery) ||
+      quoteValue(q, "address", "depart").toLowerCase().includes(searchQuery) ||
+      quoteValue(q, "destination").toLowerCase().includes(searchQuery)
     );
   }
 
@@ -298,9 +300,19 @@ function renderQuotes() {
       const q = allQuotes.find(x => x.id === quoteId);
 
       await addDoc(collection(db, TASKS_COLLECTION), {
-        quoteId, clientName: q.name || "", phone: q.phone || "", email: q.email || "",
-        service: q.service || "", address: q.address || "", date: q.date || "",
-        message: q.message || "", employeeId: emp.id,
+        quoteId,
+        clientName: quoteValue(q, "name", "nom"),
+        phone: quoteValue(q, "phone", "telephone"),
+        email: quoteValue(q, "email", "courriel"),
+        service: quoteValue(q, "service"),
+        address: quoteValue(q, "address", "depart"),
+        destination: quoteValue(q, "destination"),
+        date: quoteValue(q, "date"),
+        propertyType: quoteValue(q, "propertyType", "typeLogement"),
+        startFloor: quoteValue(q, "startFloor", "etageDepart"),
+        endFloor: quoteValue(q, "endFloor", "etageArrivee"),
+        message: quoteValue(q, "message", "details"),
+        employeeId: emp.id,
         employeeName: emp.name || emp.email || "Employé",
         employeeEmail: emp.email || "", status: "assigné", notes: "",
         createdAt: serverTimestamp(), assignedBy: currentUser.uid
@@ -311,14 +323,15 @@ function renderQuotes() {
       });
 
       // Email confirmation au client
-      if (q.email) {
+      if (quoteValue(q, "email", "courriel")) {
         try {
           if (window.emailjs) {
             await window.emailjs.send("service_o6bm6tl", "template_c0smolo", {
-              to: q.email, clientName: q.name || "Client",
-              service: q.service || "Service",
+              to: quoteValue(q, "email", "courriel"),
+              clientName: quoteValue(q, "name", "nom") || "Client",
+              service: quoteValue(q, "service") || "Service",
               employeeName: emp.name || emp.email,
-              date: q.date || "à confirmer"
+              date: quoteValue(q, "date") || "à confirmer"
             });
           }
         } catch(e) { console.warn("Email confirmation failed", e); }
@@ -367,28 +380,56 @@ function renderQuotes() {
   });
 }
 
+function quoteValue(q, ...keys) {
+  for (const key of keys) {
+    const value = q?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
+  }
+  return "";
+}
+
 function quoteCard(q) {
   const options = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name || e.email)}</option>`).join("");
   const statusClass = q.status === "assigné" ? "status assigned" : q.status === "terminé" ? "status done" : q.status === "annulé" ? "status cancelled" : "status";
   const dateStr = q.createdAt ? formatDate(q.createdAt) : "";
   const montant = q.montantAdmin ? `<p class="montantAdmin">💰 Montant estimé : <strong>${escapeHtml(String(q.montantAdmin))}$</strong> <span>(visible admin seulement)</span></p>` : "";
 
+  const name = quoteValue(q, "name", "nom") || "Sans nom";
+  const phone = quoteValue(q, "phone", "telephone");
+  const email = quoteValue(q, "email", "courriel");
+  const service = quoteValue(q, "service");
+  const depart = quoteValue(q, "address", "depart");
+  const destination = quoteValue(q, "destination", "arrivalAddress", "adresseArrivee");
+  const desiredDate = quoteValue(q, "date", "dateSouhaitee");
+  const propertyType = quoteValue(q, "propertyType", "typeLogement");
+  const startFloor = quoteValue(q, "startFloor", "etageDepart");
+  const endFloor = quoteValue(q, "endFloor", "etageArrivee");
+  const message = quoteValue(q, "message", "details");
+
   return `
     <article class="adminCard">
       <div class="cardTop">
-        <h3>${escapeHtml(q.name || "Sans nom")}</h3>
+        <h3>${escapeHtml(name)}</h3>
         <span class="${statusClass}">${escapeHtml(q.status || "nouveau")}</span>
       </div>
-      ${dateStr ? `<p class="cardDate">📅 ${dateStr}</p>` : ""}
-      <p><b>Service:</b> ${escapeHtml(q.service || "-")}</p>
-      <p><b>Téléphone:</b> ${phoneLink(q.phone)}</p>
-      <p><b>Email:</b> ${emailLink(q.email)}</p>
-      <p><b>Adresse:</b> ${mapLink(q.address)}</p>
-      <p><b>Date souhaitée:</b> ${escapeHtml(q.date || "-")}</p>
-      <p><b>Message:</b> ${escapeHtml(q.message || "-")}</p>
+      ${dateStr ? `<p class="cardDate">🕓 Reçue le ${dateStr}</p>` : ""}
+
+      <div class="quoteDetailsGrid">
+        <p><b>📦 Service :</b> ${escapeHtml(service || "-")}</p>
+        <p><b>📅 Date souhaitée :</b> ${escapeHtml(desiredDate || "-")}</p>
+        <p><b>🏠 Type de logement :</b> ${escapeHtml(propertyType || "-")}</p>
+        <p><b>📞 Téléphone :</b> ${phoneLink(phone)}</p>
+        <p><b>✉️ Courriel :</b> ${emailLink(email)}</p>
+        <p><b>📍 Adresse de départ :</b> ${mapLink(depart)}</p>
+        <p><b>🏁 Adresse d’arrivée :</b> ${mapLink(destination)}</p>
+        <p><b>⬆️ Étage au départ :</b> ${escapeHtml(startFloor || "-")}</p>
+        <p><b>⬇️ Étage à l’arrivée :</b> ${escapeHtml(endFloor || "-")}</p>
+      </div>
+
+      <div class="quoteMessage"><b>📝 Détails :</b><br>${escapeHtml(message || "-")}</div>
+      <p class="submissionId"><b>Numéro :</b> ${escapeHtml(q.id)}</p>
       ${montant}
 
-      <!-- Montant admin -->
       <div class="montantAdminRow">
         <input type="number" class="montantInput" data-quote-id="${q.id}"
           placeholder="Montant estimé ($)" value="${q.montantAdmin || ""}"
@@ -396,7 +437,6 @@ function quoteCard(q) {
         <button class="smallBtn" data-save-montant="${q.id}">💾 Montant</button>
       </div>
 
-      <!-- Note admin -->
       <div class="noteAdminRow">
         <input type="text" class="noteInput" data-quote-id="${q.id}"
           placeholder="Note interne (visible admin seulement)..."
@@ -404,7 +444,6 @@ function quoteCard(q) {
         <button class="smallBtn" data-save-note="${q.id}">💾 Note</button>
       </div>
 
-      <!-- Assigner -->
       <div class="assignRow" style="margin-top:12px">
         <select data-employee-select="${q.id}">
           <option value="">Choisir employé</option>
@@ -466,8 +505,13 @@ function taskCard(t) {
       </div>
       <p><b>Employé:</b> ${escapeHtml(t.employeeName || "-")}</p>
       <p><b>Service:</b> ${escapeHtml(t.service || "-")}</p>
-      <p><b>Adresse:</b> ${mapLink(t.address)}</p>
+      <p><b>Départ:</b> ${mapLink(t.address)}</p>
+      <p><b>Destination:</b> ${mapLink(t.destination)}</p>
+      <p><b>Date:</b> ${escapeHtml(t.date || "-")}</p>
+      <p><b>Logement:</b> ${escapeHtml(t.propertyType || "-")}</p>
+      <p><b>Étages:</b> ${escapeHtml(t.startFloor || "-")} → ${escapeHtml(t.endFloor || "-")}</p>
       <p><b>Téléphone:</b> ${phoneLink(t.phone)}</p>
+      <p><b>Détails:</b> ${escapeHtml(t.message || "-")}</p>
       <div class="assignRow threeBtn">
         <button class="smallBtn grey" data-task="${t.id}" data-status="assigné">Assigné</button>
         <button class="smallBtn orange" data-task="${t.id}" data-status="en cours">En cours</button>

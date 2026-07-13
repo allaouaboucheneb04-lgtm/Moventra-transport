@@ -443,3 +443,6 @@ body.adminBody{background:#eef6ff;color:#071f3d;padding-bottom:0}.adminTop{posit
  .adminMenuDropdown{position:fixed!important;top:82px!important;right:12px!important;left:12px!important;max-height:calc(100vh - 100px);overflow:auto;z-index:300!important}
  .adminMenuDropdown.open{display:block!important}
 }
+
+/* Détails complets des soumissions Moventra */
+.quoteDetailsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;margin:14px 0}.quoteDetailsGrid p{margin:0;padding:10px 12px;background:#f7faff;border:1px solid #e1ebf7;border-radius:10px}.quoteMessage{margin:12px 0;padding:14px;background:#fffaf0;border:1px solid #f2dfb7;border-radius:12px;white-space:pre-wrap;line-height:1.55}.submissionId{font-size:12px;color:#64748b;word-break:break-all}@media(max-width:700px){.quoteDetailsGrid{grid-template-columns:1fr}}
