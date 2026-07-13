@@ -1,1 +1,20 @@
-{"name":"Moventra Admin","short_name":"Moventra Admin","start_url":"/Moventra-transport/login.html","scope":"/Moventra-transport/","display":"standalone","background_color":"#edf6ff","theme_color":"#0875e1","icons":[{"src":"logo.jpeg","sizes":"512x512","type":"image/jpeg"}]}
+{
+  "id": "/Moventra-transport/admin-login",
+  "name": "Moventra Transport — Administration",
+  "short_name": "Moventra Admin",
+  "description": "Administration des soumissions, travaux et employés de Moventra Transport.",
+  "start_url": "/Moventra-transport/login.html?source=pwa&v=adminfix-20260713-1",
+  "scope": "/Moventra-transport/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#eef6ff",
+  "theme_color": "#0b46b5",
+  "icons": [
+    {
+      "src": "logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
