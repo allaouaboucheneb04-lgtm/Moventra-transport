@@ -83,7 +83,7 @@ function loadOneSignalSdkOnce() {
       try {
         await OneSignal.init({
           appId: DIDIER_ONESIGNAL_APP_ID,
-          serviceWorkerPath: "Moventra-transport/OneSignalSDKWorker.js",
+          serviceWorkerPath: "/Moventra-transport/OneSignalSDKWorker.js",
           serviceWorkerParam: { scope: "/Moventra-transport/" },
           notifyButton: { enable: false },
           welcomeNotification: { disable: true }
@@ -252,10 +252,10 @@ window.didierEloPushDebugInfo = async function() {
   info.files = {};
   for (const f of files) {
     try {
-      const r = await fetch("/" + f + "?t=" + Date.now(), { cache: "no-store" });
-      info.files["/" + f] = r.status + (r.ok ? " OK" : " ERROR");
+      const r = await fetch("/Moventra-transport/" + f + "?t=" + Date.now(), { cache: "no-store" });
+      info.files["/Moventra-transport/" + f] = r.status + (r.ok ? " OK" : " ERROR");
     } catch(e) {
-      info.files["/" + f] = "ERROR " + e.message;
+      info.files["/Moventra-transport/" + f] = "ERROR " + e.message;
     }
   }
   return info;
