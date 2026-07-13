@@ -1,7 +1,7 @@
 // Moventra Transport - OneSignal Web SDK v16
-const DIDIER_ONESIGNAL_APP_ID = "b7dc3eab-b127-47dd-9ad4-71295880fd34";
+const MOVENTRA_ONESIGNAL_APP_ID = "b7dc3eab-b127-47dd-9ad4-71295880fd34";
 
-window.didierPushState = window.didierPushState || {
+window.moventraPushState = window.moventraPushState || {
   ready: false,
   loading: false,
   error: "",
@@ -24,7 +24,7 @@ function didierPushStatus(message, ok = true) {
   }
   el.textContent = message;
   el.style.color = ok ? "#078b45" : "#d21f3c";
-  console.log("[DidierElo Push]", message);
+  console.log("[Moventra Push]", message);
 }
 
 function didierPermissionText() {
@@ -40,7 +40,7 @@ function didierSetButton(text) {
 function didierGetSubId(OneSignal) {
   return OneSignal?.User?.PushSubscription?.id ||
          OneSignal?.User?.PushSubscription?.token ||
-         window.didierPushState.lastSubscriptionId ||
+         window.moventraPushState.lastSubscriptionId ||
          "";
 }
 
@@ -62,17 +62,17 @@ async function saveSubscriptionToFirestore(subscriptionId) {
       oneSignalId: subscriptionId,
       oneSignalUpdatedAt: new Date().toISOString()
     });
-    console.log("[DidierElo Push] Subscription ID sauvegardé dans Firestore:", subscriptionId);
+    console.log("[Moventra Push] Subscription ID sauvegardé dans Firestore:", subscriptionId);
   } catch(e) {
-    console.warn("[DidierElo Push] Impossible de sauvegarder dans Firestore:", e);
+    console.warn("[Moventra Push] Impossible de sauvegarder dans Firestore:", e);
   }
 }
 
 let didierLoadPromise = null;
 
 function loadOneSignalSdkOnce() {
-  if (window.didierPushState.ready && window.didierPushState.oneSignal) {
-    return Promise.resolve(window.didierPushState.oneSignal);
+  if (window.moventraPushState.ready && window.moventraPushState.oneSignal) {
+    return Promise.resolve(window.moventraPushState.oneSignal);
   }
   if (didierLoadPromise) return didierLoadPromise;
 
@@ -82,20 +82,20 @@ function loadOneSignalSdkOnce() {
     window.OneSignalDeferred.push(async function(OneSignal) {
       try {
         await OneSignal.init({
-          appId: DIDIER_ONESIGNAL_APP_ID,
-          serviceWorkerPath: "Moventra-transport/OneSignalSDKWorker.js",
+          appId: MOVENTRA_ONESIGNAL_APP_ID,
+          serviceWorkerPath: "/Moventra-transport/OneSignalSDKWorker.js",
           serviceWorkerParam: { scope: "/Moventra-transport/" },
           notifyButton: { enable: false },
           welcomeNotification: { disable: true }
         });
 
-        window.didierPushState.ready = true;
-        window.didierPushState.loading = false;
-        window.didierPushState.oneSignal = OneSignal;
+        window.moventraPushState.ready = true;
+        window.moventraPushState.loading = false;
+        window.moventraPushState.oneSignal = OneSignal;
 
         const id = didierGetSubId(OneSignal);
         if (id) {
-          window.didierPushState.lastSubscriptionId = id;
+          window.moventraPushState.lastSubscriptionId = id;
           saveSubscriptionToFirestore(id);
         }
 
@@ -104,7 +104,7 @@ function loadOneSignalSdkOnce() {
             console.log("PushSubscription changed", event);
             const newId = didierGetSubId(OneSignal);
             if (newId) {
-              window.didierPushState.lastSubscriptionId = newId;
+              window.moventraPushState.lastSubscriptionId = newId;
               didierPushStatus("✅ Notifications activées. ID: " + newId, true);
               saveSubscriptionToFirestore(newId);
             }
@@ -115,10 +115,10 @@ function loadOneSignalSdkOnce() {
 
         resolve(OneSignal);
       } catch(e) {
-        window.didierPushState.error = e.message || String(e);
-        window.didierPushState.loading = false;
+        window.moventraPushState.error = e.message || String(e);
+        window.moventraPushState.loading = false;
         didierLoadPromise = null;
-        didierPushStatus("Erreur init OneSignal: " + window.didierPushState.error, false);
+        didierPushStatus("Erreur init OneSignal: " + window.moventraPushState.error, false);
         reject(e);
       }
     });
@@ -136,7 +136,7 @@ function loadOneSignalSdkOnce() {
 }
 
 async function waitForOneSignal(maxMs = 15000) {
-  if (window.didierPushState.ready && window.didierPushState.oneSignal) return window.didierPushState.oneSignal;
+  if (window.moventraPushState.ready && window.moventraPushState.oneSignal) return window.moventraPushState.oneSignal;
   const p = loadOneSignalSdkOnce();
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error("OneSignal ne charge pas. Recharge l'app puis réessaie.")), maxMs)
@@ -152,18 +152,24 @@ loadOneSignalSdkOnce().then((OneSignal) => {
   else didierPushStatus("Push prêt. Clique 🔔 Notifications.", true);
 }).catch(e => console.warn("OneSignal preload failed", e));
 
-window.didierEloEnablePush = async function() {
-  if (window.didierPushState.loading) {
+window.moventraEnablePush = async function() {
+  if (window.moventraPushState.loading) {
     didierPushStatus("Activation déjà en cours...", true);
     return;
   }
 
-  window.didierPushState.loading = true;
+  window.moventraPushState.loading = true;
   didierSetButton("Activation...");
 
   try {
     if (!("Notification" in window)) {
       didierPushStatus("Ce navigateur ne supporte pas les notifications. Ouvre l'icône installée sur iPhone.", false);
+      return;
+    }
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS && !didierPushStandalone()) {
+      didierPushStatus("Sur iPhone, ouvre Moventra depuis l’icône ajoutée à l’écran d’accueil, puis reclique sur Notifications.", false);
       return;
     }
 
@@ -174,7 +180,7 @@ window.didierEloEnablePush = async function() {
     const currentOpted = OneSignal?.User?.PushSubscription?.optedIn || false;
 
     if (currentId) {
-      window.didierPushState.lastSubscriptionId = currentId;
+      window.moventraPushState.lastSubscriptionId = currentId;
       await saveSubscriptionToFirestore(currentId);
       didierPushStatus("✅ Notifications déjà activées. ID: " + currentId, true);
       return;
@@ -192,6 +198,9 @@ window.didierEloEnablePush = async function() {
     if (Notification.permission !== "granted") {
       didierPushStatus("Demande autorisation...");
       await OneSignal.Notifications.requestPermission();
+      if (Notification.permission !== "granted" && OneSignal.Slidedown?.promptPush) {
+        await OneSignal.Slidedown.promptPush();
+      }
     }
 
     const granted = Notification.permission === "granted" || OneSignal.Notifications.permission;
@@ -217,7 +226,7 @@ window.didierEloEnablePush = async function() {
     }
 
     if (id) {
-      window.didierPushState.lastSubscriptionId = id;
+      window.moventraPushState.lastSubscriptionId = id;
       await saveSubscriptionToFirestore(id);
       didierPushStatus("✅ Notifications activées. ID: " + id, true);
     } else if (opted || Notification.permission === "granted") {
@@ -229,22 +238,22 @@ window.didierEloEnablePush = async function() {
     console.error(e);
     didierPushStatus("Erreur Push: " + (e.message || e), false);
   } finally {
-    window.didierPushState.loading = false;
+    window.moventraPushState.loading = false;
     didierSetButton("🔔 Notifications");
   }
 };
 
-window.didierEloPushDebugInfo = async function() {
+window.moventraPushDebugInfo = async function() {
   try { await waitForOneSignal(5000); } catch(e) { console.warn(e); }
-  const OneSignal = window.didierPushState.oneSignal;
+  const OneSignal = window.moventraPushState.oneSignal;
   const info = {
     origin: location.origin,
     href: location.href,
     userAgent: navigator.userAgent,
     standalone: didierPushStandalone(),
     notificationPermission: didierPermissionText(),
-    oneSignalReady: window.didierPushState.ready,
-    oneSignalError: window.didierPushState.error,
+    oneSignalReady: window.moventraPushState.ready,
+    oneSignalError: window.moventraPushState.error,
     pushSubscriptionId: didierGetSubId(OneSignal),
     pushOptedIn: OneSignal?.User?.PushSubscription?.optedIn || false
   };
@@ -260,3 +269,7 @@ window.didierEloPushDebugInfo = async function() {
   }
   return info;
 };
+
+// Compatibility aliases used by the existing admin/employee pages.
+window.didierEloEnablePush = window.moventraEnablePush;
+window.didierEloPushDebugInfo = window.moventraPushDebugInfo;

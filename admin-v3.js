@@ -7,14 +7,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { firebaseConfig, ROLES_COLLECTION, QUOTES_COLLECTION, TASKS_COLLECTION } from "./firebase-config.js";
 
-const PROFILE_COLLECTIONS = [sessionStorage.getItem("moventra_profile_collection"), ROLES_COLLECTION, "utilisateurs", "employes"].filter((v, i, a) => v && a.indexOf(v) === i);
-async function findRoleProfile(uid) {
-  for (const name of PROFILE_COLLECTIONS) {
-    try { const snap = await getDoc(doc(db, name, uid)); if (snap.exists()) return { snap, name }; } catch (e) { console.warn(`Profil ${name}`, e); }
-  }
-  return null;
-}
-
 const INVITES_COLLECTION = "invites";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -115,9 +107,8 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   try {
-    const foundRole = await findRoleProfile(user.uid);
-    const roleSnap = foundRole?.snap;
-    if (!roleSnap || String(roleSnap.data().role || "").toLowerCase() !== "admin" || roleSnap.data().active === false || roleSnap.data().actif === false) {
+    const roleSnap = await getDoc(doc(db, ROLES_COLLECTION, user.uid));
+    if (!roleSnap.exists() || roleSnap.data().role !== "admin") {
       alert("Accès admin refusé.");
       sessionStorage.removeItem("moventra_admin_verified");
       await signOut(auth);
