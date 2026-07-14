@@ -21,3 +21,29 @@ body.dashboardCleanBody{margin:0;background:#f3f7fc;color:#10243e;font-family:In
 #legacyTechnicalElements[hidden]{display:none!important}
 @media(max-width:900px){body.dashboardCleanBody{padding-top:62px!important}.dashboardShell{width:min(100% - 24px,760px);padding-top:16px}.dashboardStatsClean{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboardActionsClean{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboardColumnsClean{grid-template-columns:1fr}.dashboardPerformanceGrid{grid-template-columns:1fr 1fr}.performanceService{grid-column:1/-1}}
 @media(max-width:560px){.dashboardShell{width:calc(100% - 20px);padding-bottom:34px}.dashboardHeroClean{align-items:flex-start;flex-direction:column;padding:22px 20px;border-radius:20px}.dashboardHeroClean h1{font-size:29px}.dashboardHeroClean p{font-size:14px}.dashboardHeroDate{width:100%;min-width:0;text-align:left}.dashboardStatsClean{gap:10px}.dashboardStatClean{padding:14px 12px;border-radius:16px;gap:10px;min-height:116px}.statCleanIcon{width:38px;height:38px;flex-basis:38px;font-size:18px}.dashboardStatClean strong{font-size:18px}.dashboardStatClean b{font-size:11px}.dashboardStatClean small{font-size:10px}.dashboardSectionClean,.dashboardCardClean{padding:16px;border-radius:18px}.dashboardSectionTitle h2,.dashboardCardClean header h2{font-size:18px}.dashboardActionsClean{grid-template-columns:1fr}.dashboardActionsClean>a{padding:13px}.dashboardActionsClean small{white-space:normal}.dashboardPerformanceGrid{grid-template-columns:1fr}.performanceService{grid-column:auto}.dashboardActivity,.dashboardUpcoming{max-height:360px}}
+
+/* Correctif défilement iPhone/PWA */
+html {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+body.dashboardCleanBody {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  position: static !important;
+  touch-action: pan-y !important;
+  overscroll-behavior-y: auto;
+  padding-bottom: calc(28px + env(safe-area-inset-bottom)) !important;
+}
+.dashboardShell {
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+body.dashboardCleanBody.menu-open {
+  overflow-y: auto !important;
+}

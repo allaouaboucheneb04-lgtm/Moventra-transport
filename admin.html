@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="style.css?v=dashboard-clean-1">
   <link rel="stylesheet" href="admin.css?v=dashboard-clean-1">
   <link rel="stylesheet" href="admin-nav.css?v=dashboard-clean-1">
-  <link rel="stylesheet" href="dashboard-clean.css?v=dashboard-clean-1">
+  <link rel="stylesheet" href="dashboard-clean.css?v=dashboard-scrollfix-1">
 </head>
 <body class="dashboardCleanBody">
   <main class="dashboardShell">
@@ -114,13 +114,29 @@
   <script type="module" src="admin-v3.js?v=dashboard-clean-1"></script>
   <script src="pwa.js?v=dashboard-clean-1"></script>
   <script src="push.js?v=dashboard-clean-1" defer></script>
-  <script src="admin-nav.js?v=dashboard-clean-1"></script>
+  <script src="admin-nav.js?v=dashboard-scrollfix-1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const email = sessionStorage.getItem('moventra_admin_email') || '';
       const name = email ? email.split('@')[0].replace(/[._-]+/g,' ') : 'Allaoua';
       const el = document.getElementById('dashboardAdminName');
       if (el) el.textContent = name.replace(/\b\w/g, c => c.toUpperCase());
+    });
+  </script>
+
+  <script>
+    // Empêche Safari/PWA de restaurer un verrouillage du défilement après le menu ou le retour arrière.
+    function restoreDashboardScroll() {
+      document.documentElement.style.overflowY = 'auto';
+      document.body.style.overflow = '';
+      document.body.style.overflowY = 'auto';
+      document.body.style.position = '';
+      document.body.classList.remove('menu-open');
+    }
+    window.addEventListener('pageshow', restoreDashboardScroll);
+    window.addEventListener('load', restoreDashboardScroll);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) restoreDashboardScroll();
     });
   </script>
 </body>

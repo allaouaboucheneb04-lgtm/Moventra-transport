@@ -11,7 +11,9 @@
  const backdrop=document.createElement('div');backdrop.className='moventraBackdrop';
  const drawer=document.createElement('aside');drawer.className='moventraDrawer';drawer.innerHTML='<div class="moventraDrawerHeader"><a class="moventraBrand" href="admin.html"><img src="logo.jpeg" alt="Moventra"><span>Moventra Admin<small>Menu principal</small></span></a><button class="crmClose" aria-label="Fermer">×</button></div><nav></nav>';
  buildLinks(drawer.querySelector('nav'));
- const open=()=>{drawer.classList.add('open');backdrop.classList.add('open');document.body.style.overflow='hidden'};const close=()=>{drawer.classList.remove('open');backdrop.classList.remove('open');document.body.style.overflow=''};
+ const open=()=>{drawer.classList.add('open');backdrop.classList.add('open');document.body.classList.add('menu-open')};const close=()=>{drawer.classList.remove('open');backdrop.classList.remove('open');document.body.classList.remove('menu-open');document.body.style.overflow='';document.body.style.overflowY='auto'};
  top.querySelector('.moventraMenuBtn').onclick=open;drawer.querySelector('.crmClose').onclick=close;backdrop.onclick=close;drawer.querySelectorAll('a').forEach(a=>a.onclick=close);
  document.body.prepend(backdrop);document.body.prepend(drawer);document.body.prepend(top);
 })();
+
+window.addEventListener('pageshow',()=>{document.body.classList.remove('menu-open');document.body.style.overflow='';document.body.style.overflowY='auto'});
