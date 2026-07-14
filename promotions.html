@@ -248,19 +248,14 @@
         } catch(e) {
           errors++;
           console.error("Erreur EmailJS promotion:", e);
-          status.textContent = `❌ Erreur EmailJS: ${e?.text || e?.message || "envoi refusé"}`;
+          status.textContent = "❌ Erreur EmailJS : " + (e?.text || e?.message || String(e));
           status.style.color = "#c62828";
         }
       }
 
       btn.disabled = false;
-      if (!errors) {
-        status.textContent = `✅ ${success} email(s) envoyé(s)`;
-        status.style.color = "#078b45";
-      } else if (success) {
-        status.textContent = `✅ ${success} email(s) envoyé(s) — ❌ ${errors} erreur(s)`;
-        status.style.color = "#c87000";
-      }
+      status.textContent = `✅ ${success} email(s) envoyé(s)${errors ? " — ❌ " + errors + " erreur(s)" : ""}`;
+      status.style.color = errors ? "#c87000" : "#078b45";
     };
 
     function esc(v) {

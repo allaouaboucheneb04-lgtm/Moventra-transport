@@ -145,7 +145,7 @@
     const db = getFirestore(app);
     let allClients = [];
 
-    emailjs.init({ publicKey: "n4Ln13zFITFZtnmdL" });
+    emailjs.init({ publicKey: "AuecG8oUqCqCiggFv" });
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { location.replace("login.html"); return; }
@@ -234,7 +234,7 @@
         const client = allClients.find(c => c.id === cb.value);
         if (!client?.email) continue;
         try {
-          await emailjs.send("service_yxizoav", "template_promo", {
+          await emailjs.send("service_o6bm6tl", "template_8a2jzbe", {
             to_email: client.email,
             to_name: client.name || client.nom || "Client",
             promo_titre: titre,
@@ -245,7 +245,12 @@
           });
           success++;
           await new Promise(r => setTimeout(r, 300));
-        } catch(e) { errors++; }
+        } catch(e) {
+          errors++;
+          console.error("Erreur EmailJS promotion:", e);
+          status.textContent = "❌ Erreur EmailJS : " + (e?.text || e?.message || String(e));
+          status.style.color = "#c62828";
+        }
       }
 
       btn.disabled = false;
