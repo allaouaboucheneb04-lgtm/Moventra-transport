@@ -73,9 +73,60 @@
     <label>Adresse d’arrivée<input name="destination" placeholder="Adresse d’arrivée"></label>
     <label>Date souhaitée<input name="date" type="date"></label>
     <label>Type de logement<select name="propertyType"><option value="">Sélectionner</option><option>Appartement</option><option>Condo</option><option>Maison</option><option>Bureau / commerce</option><option>Autre</option></select></label>
-    <label>Étage de départ<input name="startFloor" placeholder="Ex. 3e étage avec ascenseur"></label>
+    <label>Étage de départ<input name="startFloor" placeholder="Ex. 3e étage"></label>
     <label>Étage d’arrivée<input name="endFloor" placeholder="Ex. Rez-de-chaussée"></label>
-    <label class="full">Détails<textarea name="message" rows="5" placeholder="Nombre de pièces, gros meubles, électroménagers, accès, stationnement..."></textarea></label>
+    <label>Ascenseur au départ<select name="startElevator"><option value="">Sélectionner</option><option>Oui</option><option>Non</option><option>Monte-charge</option></select></label>
+    <label>Ascenseur à l’arrivée<select name="endElevator"><option value="">Sélectionner</option><option>Oui</option><option>Non</option><option>Monte-charge</option></select></label>
+    <label>Nombre de pièces<input name="rooms" type="number" min="0" max="30" value="1"></label>
+    <label>Distance camion → porte<select name="doorDistance"><option value="">Sélectionner</option><option>Moins de 10 m</option><option>10 à 25 m</option><option>25 à 50 m</option><option>Plus de 50 m</option></select></label>
+
+    <section class="inventorySection full" aria-labelledby="inventoryTitle">
+      <div class="inventoryHeader"><div><span class="inventoryEyebrow">Estimation des besoins</span><h3 id="inventoryTitle">Inventaire à déménager</h3><p>Utilisez les boutons − et +. Vous pouvez laisser les éléments à zéro.</p></div><div class="estimateBadge"><small>Estimation préliminaire</small><b id="estimatedVolume">0 m³</b><span id="estimatedCrew">Ajoutez vos articles</span></div></div>
+      <div id="inventoryGrid" class="inventoryGrid">
+        <div class="inventoryGroup"><h4>🍳 Cuisine</h4>
+          <div class="counterRow" data-item="refrigerateur" data-label="Réfrigérateur" data-volume="1.2"><span>Réfrigérateur</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_refrigerateur" value="0"></div></div>
+          <div class="counterRow" data-item="poele" data-label="Poêle" data-volume="0.8"><span>Poêle</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_poele" value="0"></div></div>
+          <div class="counterRow" data-item="laveVaisselle" data-label="Lave-vaisselle" data-volume="0.6"><span>Lave-vaisselle</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_laveVaisselle" value="0"></div></div>
+          <div class="counterRow" data-item="tableCuisine" data-label="Table de cuisine" data-volume="1.0"><span>Table de cuisine</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_tableCuisine" value="0"></div></div>
+          <div class="counterRow" data-item="chaises" data-label="Chaises" data-volume="0.18"><span>Chaises</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_chaises" value="0"></div></div>
+          <div class="counterRow" data-item="microOndes" data-label="Micro-ondes" data-volume="0.15"><span>Micro-ondes</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_microOndes" value="0"></div></div>
+        </div>
+        <div class="inventoryGroup"><h4>🛋 Salon</h4>
+          <div class="counterRow" data-item="divan" data-label="Divan" data-volume="1.8"><span>Divan</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_divan" value="0"></div></div>
+          <div class="counterRow" data-item="divanLit" data-label="Divan-lit" data-volume="2.2"><span>Divan-lit</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_divanLit" value="0"></div></div>
+          <div class="counterRow" data-item="fauteuil" data-label="Fauteuil" data-volume="0.8"><span>Fauteuil</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_fauteuil" value="0"></div></div>
+          <div class="counterRow" data-item="meubleTv" data-label="Meuble TV" data-volume="0.7"><span>Meuble TV</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_meubleTv" value="0"></div></div>
+          <div class="counterRow" data-item="television" data-label="Télévision" data-volume="0.25"><span>Télévision</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_television" value="0"></div></div>
+          <div class="counterRow" data-item="tableSalon" data-label="Table de salon" data-volume="0.35"><span>Table de salon</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_tableSalon" value="0"></div></div>
+        </div>
+        <div class="inventoryGroup"><h4>🛏 Chambre</h4>
+          <div class="counterRow" data-item="litSimple" data-label="Lit simple" data-volume="1.0"><span>Lit simple</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_litSimple" value="0"></div></div>
+          <div class="counterRow" data-item="litDouble" data-label="Lit double / queen" data-volume="1.7"><span>Lit double / queen</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_litDouble" value="0"></div></div>
+          <div class="counterRow" data-item="litKing" data-label="Lit king" data-volume="2.1"><span>Lit king</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_litKing" value="0"></div></div>
+          <div class="counterRow" data-item="commode" data-label="Commode" data-volume="0.75"><span>Commode</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_commode" value="0"></div></div>
+          <div class="counterRow" data-item="armoire" data-label="Armoire" data-volume="1.2"><span>Armoire</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_armoire" value="0"></div></div>
+          <div class="counterRow" data-item="chevet" data-label="Table de chevet" data-volume="0.25"><span>Table de chevet</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_chevet" value="0"></div></div>
+        </div>
+        <div class="inventoryGroup"><h4>🧺 Buanderie et bureau</h4>
+          <div class="counterRow" data-item="laveuse" data-label="Laveuse" data-volume="0.65"><span>Laveuse</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_laveuse" value="0"></div></div>
+          <div class="counterRow" data-item="secheuse" data-label="Sécheuse" data-volume="0.65"><span>Sécheuse</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_secheuse" value="0"></div></div>
+          <div class="counterRow" data-item="bureau" data-label="Bureau" data-volume="0.8"><span>Bureau</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_bureau" value="0"></div></div>
+          <div class="counterRow" data-item="chaiseBureau" data-label="Chaise de bureau" data-volume="0.25"><span>Chaise de bureau</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_chaiseBureau" value="0"></div></div>
+          <div class="counterRow" data-item="bibliotheque" data-label="Bibliothèque" data-volume="0.7"><span>Bibliothèque</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_bibliotheque" value="0"></div></div>
+        </div>
+        <div class="inventoryGroup"><h4>📦 Boîtes et objets spéciaux</h4>
+          <div class="counterRow" data-item="boites" data-label="Boîtes" data-volume="0.10"><span>Boîtes</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_boites" value="0"></div></div>
+          <div class="counterRow" data-item="piano" data-label="Piano" data-volume="2.0" data-heavy="1"><span>Piano</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_piano" value="0"></div></div>
+          <div class="counterRow" data-item="coffreFort" data-label="Coffre-fort" data-volume="0.8" data-heavy="1"><span>Coffre-fort</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_coffreFort" value="0"></div></div>
+          <div class="counterRow" data-item="tableBillard" data-label="Table de billard" data-volume="3.0" data-heavy="1"><span>Table de billard</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_tableBillard" value="0"></div></div>
+        </div>
+      </div>
+      <label class="full inventoryOther">Autres objets importants<textarea name="inventoryOther" rows="3" placeholder="Décrivez les autres meubles, objets fragiles ou très lourds..."></textarea></label>
+      <div class="inventoryAdvice"><b>ℹ️ Estimation préliminaire seulement.</b> Le prix final sera confirmé par Moventra après vérification de votre demande.</div>
+    </section>
+
+    <label class="full photoUpload">Photos facultatives<input id="submissionPhotos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple><small>Maximum 6 photos, 5 Mo chacune : pièces, escaliers, entrée ou objets lourds.</small><div id="photoPreview" class="photoPreview"></div></label>
+    <label class="full">Détails<textarea name="message" rows="5" placeholder="Accès, stationnement, objets fragiles, précisions utiles..."></textarea></label>
     <button id="submitBtn" class="full" type="submit">Envoyer ma demande</button><p id="formStatus" class="full"></p>
   </form>
 </section>
@@ -85,6 +136,6 @@
 <div class="bottomBar"><a href="tel:4382299722">📞 Appeler</a><a href="#soumission">🧾 Soumission</a></div>
 <footer><div class="footerMain"><div class="footerBrand"><img src="logo.jpeg" alt="Moventra"><div><h3>Moventra Transport</h3><p>Déménagement résidentiel et commercial, montage, transport et livraison.</p></div></div><div><b>Contact</b><a href="tel:4382299722">438-229-9722</a><a href="mailto:info@moventratransport.ca">info@moventratransport.ca</a></div><div><b>Secteurs</b><span>Montréal</span><span>Rive-Sud</span><span>Rive-Nord</span></div></div><div class="footerBottom">© 2026 Moventra Transport — Service rapide, fiable et professionnel.</div></footer>
 <script src="webhook-config.js?v=moventra-design-restore-1"></script>
-<script type="module" src="app.js?v=moventra-design-restore-1"></script><script src="pwa.js?v=moventra-design-restore-1"></script>
+<script type="module" src="app.js?v=inventory-v1"></script><script src="pwa.js?v=moventra-design-restore-1"></script>
 <script>const drawer=document.getElementById('drawer');document.getElementById('openMenu').onclick=()=>drawer.classList.add('open');document.getElementById('closeMenu').onclick=()=>drawer.classList.remove('open');drawer.querySelectorAll('a').forEach(a=>a.onclick=()=>drawer.classList.remove('open'));</script>
 </body></html>
