@@ -2,279 +2,126 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <script>
-    (function () {
-      const verified = sessionStorage.getItem("moventra_admin_verified");
-      if (!verified) {
-        location.replace("login.html?required=1");
-        return;
+    (() => {
+      if (!sessionStorage.getItem('moventra_admin_verified')) {
+        location.replace('login.html?required=1');
       }
-      document.documentElement.classList.add("auth-checking");
     })();
   </script>
-  <title>Administration | Moventra Transport</title>
+  <title>Tableau de bord | Moventra</title>
   <link rel="icon" href="logo.jpeg">
-  <link rel="stylesheet" href="style.css?v=adminfix-20260713-1">
-  <link rel="stylesheet" href="admin.css?v=dashboard-v2">
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" href="logo.jpeg">
-  <meta name="theme-color" content="#006bd6">
+  <meta name="theme-color" content="#ffffff">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Moventra Admin">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="stylesheet" href="admin-nav.css?v=crm-menu-1">
+  <link rel="stylesheet" href="style.css?v=dashboard-clean-1">
+  <link rel="stylesheet" href="admin.css?v=dashboard-clean-1">
+  <link rel="stylesheet" href="admin-nav.css?v=dashboard-clean-1">
+  <link rel="stylesheet" href="dashboard-clean.css?v=dashboard-clean-1">
 </head>
-<body class="adminBody">
-  <header class="adminTop adminTopClean">
-    <div class="adminBrand">
-      <img src="logo.jpeg" alt="Moventra Transport">
+<body class="dashboardCleanBody">
+  <main class="dashboardShell">
+    <section class="dashboardHeroClean">
       <div>
-        <strong>Admin Moventra</strong>
-        <span id="adminEmail">Chargement...</span>
+        <span class="dashboardEyebrow">TABLEAU DE BORD</span>
+        <h1>Bonjour, <span id="dashboardAdminName">bienvenue</span> 👋</h1>
+        <p>Suivez l’activité de Moventra en un coup d’œil.</p>
       </div>
-    </div>
-
-    <div class="adminActionsClean">
-      <a href="historique.html" class="smallBtn ok">Historique</a>
-      <a href="dispatch.html" class="smallBtn" style="background:#0062ff;color:white">🗺️ Dispatch</a>
-      <a href="facturation.html" class="smallBtn" style="background:#078b45;color:white">🧾 Facturation</a>
-      <a href="promotions.html" class="smallBtn" style="background:#c87000;color:white">📣 Promos</a>
-      <a href="parametres.html" class="smallBtn" style="background:#173f73;color:white">⚙️ Paramètres</a>
-      <button id="enableNotificationsBtn" class="smallBtn">🔔</button>
-      <button id="logoutBtn" class="smallBtn danger">Déco</button>
-    </div>
-
-    <!-- Menu mobile -->
-    <button class="adminMenuToggle" id="adminMenuToggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
-    <div class="adminMenuDropdown" id="adminMenuDropdown">
-      <a href="historique.html" class="smallBtn ok">📋 Historique</a>
-      <a href="dispatch.html" class="smallBtn" style="background:#0062ff;color:white">🗺️ Dispatch</a>
-      <a href="facturation.html" class="smallBtn" style="background:#078b45;color:white">🧾 Facturation</a>
-      <a href="promotions.html" class="smallBtn" style="background:#c87000;color:white">📣 Promotions</a>
-      <a href="parametres.html" class="smallBtn" style="background:#173f73;color:white">⚙️ Paramètres</a>
-      <button id="enableNotificationsBtnMobile" class="smallBtn">🔔 Notifications</button>
-      <button id="logoutBtnMobile" class="smallBtn danger">🚪 Déconnexion</button>
-    </div>
-  </header>
-
-  <main class="adminMain">
-    <section class="dashboardWelcome">
-      <div>
-        <span class="adminBadge">Tableau de bord</span>
-        <h1>Bonjour, bienvenue chez Moventra</h1>
-        <p>Voici un aperçu en temps réel des soumissions, missions, factures et employés.</p>
-      </div>
-      <div class="dashboardDate" id="dashboardDate">—</div>
+      <div class="dashboardHeroDate" id="dashboardDate">—</div>
     </section>
 
-    <section class="dashboardKpis" aria-label="Statistiques principales">
-      <a class="dashboardKpi blue" href="#soumissions">
-        <span class="kpiIcon">📋</span>
-        <div><strong id="dashQuotesToday">0</strong><span>Soumissions aujourd’hui</span><small id="dashQuotesMonth">0 ce mois-ci</small></div>
+    <section class="dashboardStatsClean" aria-label="Indicateurs principaux">
+      <a class="dashboardStatClean statBlue" href="historique.html">
+        <span class="statCleanIcon">📋</span>
+        <div><strong id="dashQuotesToday">0</strong><b>Soumissions aujourd’hui</b><small id="dashQuotesMonth">0 ce mois-ci</small></div>
       </a>
-      <a class="dashboardKpi green" href="facturation.html">
-        <span class="kpiIcon">💰</span>
-        <div><strong id="dashRevenueMonth">0,00 $</strong><span>Revenus du mois</span><small id="dashInvoicesMonth">0 facture(s)</small></div>
+      <a class="dashboardStatClean statGreen" href="facturation.html">
+        <span class="statCleanIcon">💰</span>
+        <div><strong id="dashRevenueMonth">0,00 $</strong><b>Revenus du mois</b><small id="dashInvoicesMonth">0 facture(s)</small></div>
       </a>
-      <a class="dashboardKpi orange" href="dispatch.html">
-        <span class="kpiIcon">🚚</span>
-        <div><strong id="dashActiveTasks">0</strong><span>Missions en cours</span><small id="dashTasksToday">0 prévue(s) aujourd’hui</small></div>
+      <a class="dashboardStatClean statOrange" href="dispatch.html">
+        <span class="statCleanIcon">🚚</span>
+        <div><strong id="dashActiveTasks">0</strong><b>Missions en cours</b><small id="dashTasksToday">0 aujourd’hui</small></div>
       </a>
-      <a class="dashboardKpi purple" href="employes.html">
-        <span class="kpiIcon">👨‍💼</span>
-        <div><strong id="dashAvailableEmployees">0</strong><span>Employés disponibles</span><small id="dashEmployeesTotal">0 au total</small></div>
-      </a>
-      <a class="dashboardKpi red" href="notification-test.html">
-        <span class="kpiIcon">🔔</span>
-        <div><strong id="dashUnreadNotifications">0</strong><span>Notifications non lues</span><small>Nouvelles alertes</small></div>
+      <a class="dashboardStatClean statPurple" href="employes.html">
+        <span class="statCleanIcon">👷</span>
+        <div><strong id="dashAvailableEmployees">0</strong><b>Employés disponibles</b><small id="dashEmployeesTotal">0 au total</small></div>
       </a>
     </section>
 
-    <section class="dashboardGrid">
-      <article class="dashboardPanel dashboardQuickPanel">
-        <div class="dashboardPanelHead"><div><span class="adminBadge">Accès rapide</span><h2>Que voulez-vous faire?</h2></div></div>
-        <div class="dashboardQuickActions">
-          <a href="historique.html"><span>📋</span><b>Voir les soumissions</b><small>Consulter et traiter les nouvelles demandes</small></a>
-          <a href="clients.html"><span>👥</span><b>Rechercher un client</b><small>Historique, coordonnées et factures</small></a>
-          <a href="facturation.html"><span>🧾</span><b>Créer une facture</b><small>Facture PDF et partage Gmail</small></a>
-          <a href="dispatch.html"><span>👷</span><b>Planifier une mission</b><small>Assigner un employé et suivre le travail</small></a>
-          <a href="calendrier.html"><span>📅</span><b>Ouvrir le calendrier</b><small>Voir les missions et échéances</small></a>
-          <a href="promotions.html"><span>🎉</span><b>Lancer une promotion</b><small>Envoyer une campagne aux clients</small></a>
-        </div>
-      </article>
+    <section class="dashboardNoticeClean">
+      <a href="notification-test.html">
+        <span>🔔</span>
+        <div><b><span id="dashUnreadNotifications">0</span> notification(s) non lue(s)</b><small>Consulter les alertes et tests push</small></div>
+        <i>›</i>
+      </a>
+    </section>
 
-      <article class="dashboardPanel">
-        <div class="dashboardPanelHead"><div><span class="adminBadge">Activité récente</span><h2>Dernières opérations</h2></div><a href="historique.html">Tout voir</a></div>
+    <section class="dashboardSectionClean">
+      <div class="dashboardSectionTitle"><div><span>ACCÈS RAPIDE</span><h2>Actions principales</h2></div></div>
+      <div class="dashboardActionsClean">
+        <a href="historique.html"><span>📋</span><div><b>Soumissions</b><small>Voir et traiter les demandes</small></div></a>
+        <a href="clients.html"><span>👥</span><div><b>Clients</b><small>Rechercher une fiche client</small></div></a>
+        <a href="facturation.html"><span>🧾</span><div><b>Nouvelle facture</b><small>Créer, PDF et Gmail</small></div></a>
+        <a href="dispatch.html"><span>👷</span><div><b>Planifier une mission</b><small>Assigner un employé</small></div></a>
+        <a href="calendrier.html"><span>📅</span><div><b>Calendrier</b><small>Missions et échéances</small></div></a>
+        <a href="promotions.html"><span>🎉</span><div><b>Promotion</b><small>Lancer une campagne</small></div></a>
+      </div>
+    </section>
+
+    <section class="dashboardColumnsClean">
+      <article class="dashboardCardClean">
+        <header><div><span>ACTIVITÉ RÉCENTE</span><h2>Dernières opérations</h2></div><a href="historique.html">Tout voir</a></header>
         <div id="dashboardRecentActivity" class="dashboardActivity"><p class="dashboardLoading">Chargement…</p></div>
       </article>
-    </section>
-
-    <section class="dashboardGrid dashboardGridBottom">
-      <article class="dashboardPanel">
-        <div class="dashboardPanelHead"><div><span class="adminBadge">À venir</span><h2>Prochains rendez-vous</h2></div><a href="calendrier.html">Calendrier</a></div>
+      <article class="dashboardCardClean">
+        <header><div><span>À VENIR</span><h2>Prochains rendez-vous</h2></div><a href="calendrier.html">Calendrier</a></header>
         <div id="dashboardUpcoming" class="dashboardUpcoming"><p class="dashboardLoading">Chargement…</p></div>
       </article>
-      <article class="dashboardPanel">
-        <div class="dashboardPanelHead"><div><span class="adminBadge">Performance</span><h2>Résumé du mois</h2></div></div>
-        <div class="dashboardPerformance">
-          <div><span>Taux de conversion</span><strong id="dashConversionRate">0 %</strong><div class="progress"><i id="dashConversionBar"></i></div></div>
-          <div><span>Factures payées</span><strong id="dashPaidRate">0 %</strong><div class="progress green"><i id="dashPaidBar"></i></div></div>
-          <div class="dashboardTopService"><span>Service le plus demandé</span><strong id="dashTopService">—</strong></div>
-        </div>
-      </article>
     </section>
 
-    <div id="legacyDashboardCompatibility" aria-hidden="true" style="display:none !important;">
-    <section class="adminStats legacyStats">
-      <div><strong id="countQuotes">0</strong><span>Soumissions totales</span></div>
-      <div><strong id="countTasks">0</strong><span>Travaux actifs</span></div>
-      <div><strong id="countEmployees">0</strong><span>Employés</span></div>
+    <section class="dashboardCardClean dashboardPerformanceClean">
+      <header><div><span>PERFORMANCE</span><h2>Résumé du mois</h2></div></header>
+      <div class="dashboardPerformanceGrid">
+        <div class="performanceMetric"><div><span>Taux de conversion</span><strong id="dashConversionRate">0 %</strong></div><div class="progress"><i id="dashConversionBar"></i></div></div>
+        <div class="performanceMetric"><div><span>Factures payées</span><strong id="dashPaidRate">0 %</strong></div><div class="progress green"><i id="dashPaidBar"></i></div></div>
+        <div class="performanceService"><span>Service le plus demandé</span><strong id="dashTopService">—</strong></div>
+      </div>
     </section>
+  </main>
 
-    <!-- Réseaux sociaux -->
-    <section class="panel">
-      <div class="panelHead">
-        <div>
-          <span class="adminBadge">Réseaux sociaux</span>
-          <h2>Gérer les liens sociaux</h2>
-        </div>
-      </div>
-      <div id="socialStatus" class="adminStatus"></div>
-      <div class="socialGrid">
-        <div class="socialRow">
-          <div class="socialIcon facebook">f</div>
-          <div class="socialInfo">
-            <strong>Facebook</strong>
-            <input id="socialFacebook" type="url" placeholder="https://www.facebook.com/votrepage">
-          </div>
-          <button class="smallBtn" id="saveFacebook">Sauvegarder</button>
-        </div>
-        <div class="socialRow">
-          <div class="socialIcon instagram">📸</div>
-          <div class="socialInfo">
-            <strong>Instagram</strong>
-            <input id="socialInstagram" type="url" placeholder="https://www.instagram.com/votrecompte">
-          </div>
-          <button class="smallBtn" id="saveInstagram">Sauvegarder</button>
-        </div>
-        <div class="socialRow">
-          <div class="socialIcon tiktok">♪</div>
-          <div class="socialInfo">
-            <strong>TikTok</strong>
-            <input id="socialTiktok" type="url" placeholder="https://www.tiktok.com/@votrecompte">
-          </div>
-          <button class="smallBtn" id="saveTiktok">Sauvegarder</button>
-        </div>
-      </div>
-      <p class="socialNote">Les liens sauvegardés apparaissent automatiquement dans le footer du site.</p>
-    </section>
+  <!-- Éléments techniques gardés invisibles pour le JavaScript historique. -->
+  <div id="legacyTechnicalElements" hidden>
+    <span id="adminEmail"></span><button id="logoutBtn"></button><button id="logoutBtnMobile"></button>
+    <button id="enableNotificationsBtn"></button><button id="enableNotificationsBtnMobile"></button>
+    <strong id="countQuotes">0</strong><strong id="countTasks">0</strong><strong id="countEmployees">0</strong>
+    <input id="socialFacebook"><input id="socialInstagram"><input id="socialTiktok">
+    <button id="saveFacebook"></button><button id="saveInstagram"></button><button id="saveTiktok"></button><p id="socialStatus"></p>
+    <form id="inviteForm"><input name="name"><input name="email"><select name="role"><option value="employe">Employé</option></select></form>
+    <p id="inviteStatus"></p><div id="inviteResult"><input id="inviteLink"><button id="copyInvite"></button><a id="emailInvite"></a></div>
+    <button id="refreshQuotes"></button><button id="refreshTasks"></button>
+    <input id="searchQuotes"><div id="quotesList"></div><div id="tasksList"></div><p id="notificationStatus"></p>
+  </div>
 
-    <section class="panel">
-      <div class="panelHead">
-        <div>
-          <span class="adminBadge">Employés</span>
-          <h2>Inviter un employé par email</h2>
-        </div>
-      </div>
-
-      <form id="inviteForm" class="adminForm grid3">
-        <label>Nom employé
-          <input name="name" required placeholder="Nom complet">
-        </label>
-
-        <label>Email employé
-          <input name="email" type="email" required placeholder="email@exemple.com">
-        </label>
-
-        <label>Rôle
-          <select name="role" required>
-            <option value="employe">Employé</option>
-          </select>
-        </label>
-
-        <button type="submit">Créer invitation</button>
-        <p id="inviteStatus" class="adminStatus full"></p>
-      </form>
-
-      <div id="inviteResult" class="inviteResult" hidden>
-        <b>Lien d’invitation :</b>
-        <input id="inviteLink" readonly>
-        <div class="assignRow">
-          <button id="copyInvite" class="smallBtn">Copier le lien</button>
-          <a id="emailInvite" class="smallBtn ok" href="#">Envoyer par email</a>
-        </div>
-      </div>
-
-      <p class="hint">
-        L’employé reçoit le lien, crée son mot de passe et son compte sera automatiquement ajouté dans Firestore.
-      </p>
-    </section>
-
-
-    <section class="panel" id="soumissions">
-      <div class="panelHead">
-        <div>
-          <span class="adminBadge">Soumissions</span>
-          <h2>Demandes reçues</h2>
-        </div>
-        <button id="refreshQuotes" class="smallBtn">Rafraîchir</button>
-      </div>
-      <div id="quotesList" class="cardsList"></div>
-    </section>
-
-    <section class="panel">
-      <div class="panelHead">
-        <div>
-          <span class="adminBadge">Travaux</span>
-          <h2>Travaux assignés</h2>
-        </div>
-        <button id="refreshTasks" class="smallBtn">Rafraîchir</button>
-      </div>
-      <div id="tasksList" class="cardsList"></div>
-    </section>
-    </div>
-
-  <p id="notificationStatus" class="notificationStatus"></p>
-
-<div class="installHint">
-  📲 Pour installer l’administration : ouvrez cette page dans Safari, puis Partager → Sur l’écran d’accueil.
-</div>
-
-</main>
-
-
-<script>
-(function(){
-  const toggle=document.getElementById('adminMenuToggle');
-  const menu=document.getElementById('adminMenuDropdown');
-  if(toggle&&menu){
-    toggle.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      const isOpen=menu.classList.toggle('open');
-      toggle.setAttribute('aria-expanded',String(isOpen));
+  <script type="module" src="admin-v3.js?v=dashboard-clean-1"></script>
+  <script src="pwa.js?v=dashboard-clean-1"></script>
+  <script src="push.js?v=dashboard-clean-1" defer></script>
+  <script src="admin-nav.js?v=dashboard-clean-1"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const email = sessionStorage.getItem('moventra_admin_email') || '';
+      const name = email ? email.split('@')[0].replace(/[._-]+/g,' ') : 'Allaoua';
+      const el = document.getElementById('dashboardAdminName');
+      if (el) el.textContent = name.replace(/\b\w/g, c => c.toUpperCase());
     });
-    menu.addEventListener('click',function(e){e.stopPropagation();});
-    document.addEventListener('click',function(){
-      menu.classList.remove('open');
-      toggle.setAttribute('aria-expanded','false');
-    });
-  }
-  window.addEventListener('error',function(e){
-    const box=document.getElementById('notificationStatus');
-    if(box){box.textContent='Erreur admin: '+(e.message||'script non chargé')+(e.filename?' — '+e.filename.split('/').pop()+':'+e.lineno:'');box.style.color='#d21f3c';}
-  });
-})();
-</script>
-  <script type="module" src="admin-v3.js?v=dashboard-v2"></script>
-<script src="pwa.js?v=20260713-0055"></script>
-<script src="push.js?v=onesignal-moventra-20260713-2" defer></script>
-
-<script src="admin-nav.js?v=crm-menu-1"></script>
+  </script>
 </body>
 </html>
