@@ -748,9 +748,8 @@ ${companySettings.companyName}`;
 
         // Repli ordinateur / navigateur sans partage de fichiers : téléchargement + ouverture Gmail.
         downloadBlob(blob, `${f.numero}.pdf`);
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(message + "
-
-Le PDF a été téléchargé sur votre appareil. Joignez-le à ce message avant l’envoi.")}`;
+        const gmailBody = message + "\n\nLe PDF a été téléchargé sur votre appareil. Joignez-le à ce message avant l’envoi.";
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(gmailBody)}`;
         window.open(gmailUrl, "_blank");
         st.textContent = "✅ Gmail ouvert. Joignez le PDF téléchargé, puis envoyez.";
         st.style.color = "#078b45";
