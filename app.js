@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBeDOLjFyONjv06dUc4b_R0lQ4AlSBPU2U",
@@ -115,6 +115,25 @@ async function sendMoventraWebhook(data, submissionId) {
   }
 }
 
+function createEstimationNumber() {
+  const year = new Date().getFullYear();
+  const stamp = Date.now().toString(36).slice(-5).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 5).toUpperCase();
+  return `EST-${year}-${stamp}${random}`;
+}
+
+function removeUndefined(value) {
+  if (Array.isArray(value)) return value.map(removeUndefined);
+  if (value && typeof value === "object") {
+    const clean = {};
+    Object.entries(value).forEach(([key, item]) => {
+      if (item !== undefined) clean[key] = removeUndefined(item);
+    });
+    return clean;
+  }
+  return value;
+}
+
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const raw = new FormData(form);
@@ -132,7 +151,8 @@ form?.addEventListener("submit", async (event) => {
   statusEl.textContent = "";
 
   try {
-    const submission = {
+    const estimationNumber = createEstimationNumber();
+    const submission = removeUndefined({
       ...data,
       // Champs canoniques utilisés par l’administration
       nom: data.name || "",
@@ -152,12 +172,11 @@ form?.addEventListener("submit", async (event) => {
       inventoryEstimate: estimate,
       status: "nouveau",
       source: "site_moventra",
+      estimationNumber,
       createdAt: serverTimestamp()
-    };
+    });
 
     const docRef = await addDoc(collection(db, "demandes_soumission"), submission);
-    const estimationNumber = `EST-${new Date().getFullYear()}-${docRef.id.slice(0, 6).toUpperCase()}`;
-    await updateDoc(docRef, { estimationNumber });
     const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
     if (window.emailjs) {
       secondaryTasks.push(emailjs.send("service_o6bm6tl", "template_c0smolo", {
@@ -208,9 +227,12 @@ form?.addEventListener("submit", async (event) => {
     sessionStorage.setItem("moventraLastSubmission", JSON.stringify(confirmationData));
     window.location.href = `confirmation.html?numero=${encodeURIComponent(estimationNumber)}`;
   } catch (error) {
-    console.error(error);
-    statusEl.textContent = "❌ La demande n’a pas pu être enregistrée. Réessayez ou appelez Moventra.";
+    console.error("Erreur enregistrement soumission :", error);
+    const code = error?.code ? ` (${error.code})` : "";
+    const detail = error?.message || "Erreur inconnue";
+    statusEl.innerHTML = `❌ La demande n’a pas pu être enregistrée${code}.<br><small>${detail}</small>`;
     statusEl.style.color = "#d21f3c";
+    statusEl.scrollIntoView({ behavior: "smooth", block: "center" });
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = "Envoyer ma demande";
