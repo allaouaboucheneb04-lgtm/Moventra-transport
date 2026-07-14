@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="logo.jpeg">
   <meta name="theme-color" content="#006bd6">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
   <style>
     .facturePreview {
       background: white;
@@ -99,6 +99,38 @@
     .clientHistoriqueItem span { color: #60758d; }
     .clientHistoriqueItem strong { color: #0a1628; }
     .montantTotal { font-size: 1.1rem; color: #006bd6; font-weight: 900; }
+
+    .pdfInvoiceHost { position: fixed; left: -20000px; top: 0; width: 794px; background: #fff; z-index: -1; }
+    .pdfInvoice {
+      width: 794px; min-height: 1123px; box-sizing: border-box; padding: 44px 48px;
+      background: #fff; color: #10233f; font-family: Arial, Helvetica, sans-serif;
+    }
+    .pdfHeader { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; padding-bottom:24px; border-bottom:3px solid #0b67d1; }
+    .pdfBrand { display:flex; gap:16px; align-items:center; }
+    .pdfBrand img { width:86px; height:86px; object-fit:cover; border-radius:16px; }
+    .pdfBrand h2 { margin:0 0 6px; font-size:24px; color:#0b3d91; }
+    .pdfBrand p, .pdfMeta p { margin:3px 0; font-size:12px; line-height:1.45; color:#526981; }
+    .pdfMeta { text-align:right; }
+    .pdfMeta .invoiceLabel { font-size:32px; font-weight:900; letter-spacing:.5px; color:#0b67d1; margin-bottom:8px; }
+    .pdfClientGrid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:28px 0; }
+    .pdfBox { border:1px solid #dce7f3; border-radius:14px; padding:18px; background:#f8fbff; }
+    .pdfBox h4 { margin:0 0 10px; font-size:11px; color:#60758d; letter-spacing:1px; text-transform:uppercase; }
+    .pdfBox p { margin:3px 0; font-size:13px; line-height:1.5; }
+    .pdfTable { width:100%; border-collapse:collapse; margin-top:8px; }
+    .pdfTable th { background:#0b67d1; color:#fff; padding:11px 12px; font-size:11px; text-transform:uppercase; text-align:left; }
+    .pdfTable th:nth-child(n+2), .pdfTable td:nth-child(n+2) { text-align:right; }
+    .pdfTable td { border-bottom:1px solid #e5edf6; padding:12px; font-size:12px; vertical-align:top; }
+    .pdfTotals { width:310px; margin:22px 0 0 auto; }
+    .pdfTotals .row { display:flex; justify-content:space-between; padding:7px 0; font-size:12px; border-bottom:1px solid #e7edf4; }
+    .pdfTotals .grand { display:flex; justify-content:space-between; margin-top:8px; padding:13px 14px; background:#0b3d91; color:#fff; border-radius:10px; font-size:17px; font-weight:900; }
+    .pdfNote { margin-top:24px; padding:16px; border-left:4px solid #0b67d1; background:#f4f8fd; font-size:12px; line-height:1.55; }
+    .pdfFooter { margin-top:34px; padding-top:18px; border-top:1px solid #dce7f3; text-align:center; font-size:11px; line-height:1.55; color:#60758d; }
+    @media print {
+      body * { visibility:hidden !important; }
+      #facturePreviewContent, #facturePreviewContent * { visibility:visible !important; }
+      #facturePreviewContent { position:absolute; left:0; top:0; width:100%; }
+      .facturePreview { box-shadow:none !important; border:0 !important; border-radius:0 !important; }
+    }
   </style>
 </head>
 <body class="adminBody">
@@ -202,7 +234,8 @@
       <div class="assignRow" style="margin-top:20px">
         <button class="smallBtn ok" id="btnPreviewFacture">👁️ Aperçu</button>
         <button class="smallBtn" id="btnSauvegarderFacture">💾 Sauvegarder</button>
-        <button class="smallBtn" style="background:#0062ff;color:white" id="btnEnvoyerFacture">📧 Envoyer par email</button>
+        <button class="smallBtn" id="btnTelechargerPDF" style="background:#0a7a4b;color:white">📄 Télécharger PDF</button>
+        <button class="smallBtn" style="background:#0062ff;color:white" id="btnEnvoyerFacture">📧 Envoyer avec Gmail</button>
       </div>
       <p id="factureStatus" class="adminStatus"></p>
     </section>
@@ -246,8 +279,6 @@
     let allFactures = [], allClients = [];
     let lignes = [];
     let factureEnCours = null;
-
-    emailjs.init({ publicKey: "n4Ln13zFITFZtnmdL" });
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { location.replace("login.html"); return; }
@@ -431,9 +462,9 @@
             <div class="factureLogo">
               <img src="logo.jpeg" alt="Moventra Transport">
               <div>
-                <strong>Moventra Transport Multi Service Inc</strong>
-                <span>1344 ch. du Bord-de-l'Eau, Laval QC H7Y 1C1</span><br>
-                <span>514 473-5315 • info@moventratransport.ca</span>
+                <strong>Moventra Transport</strong>
+                <span>Montréal • Rive-Sud • Rive-Nord</span><br>
+                <span>438-229-9722 • info@moventratransport.ca</span>
               </div>
             </div>
             <div class="factureNumero">
@@ -446,7 +477,7 @@
           <div class="factureParties">
             <div class="facturePartie">
               <h4>Facturé par</h4>
-              <p><strong>Moventra Transport Multi Service Inc</strong><br>1344 ch. du Bord-de-l'Eau<br>Laval, QC H7Y 1C1<br>514 473-5315</p>
+              <p><strong>Moventra Transport</strong><br>Montréal • Rive-Sud • Rive-Nord<br>438-229-9722</p>
             </div>
             <div class="facturePartie">
               <h4>Facturé à</h4>
@@ -467,9 +498,9 @@
           </div>
           ${f.note ? `<p style="margin-top:24px;color:#60758d;font-size:.9rem;line-height:1.6">${esc(f.note)}</p>` : ""}
           <div class="factureFooter">
-            Merci de votre confiance — Moventra Transport Multi Service Inc<br>
+            Merci de votre confiance — Moventra Transport<br>
             Paiement par virement Interac, chèque ou comptant.<br>
-            <strong>info@moventratransport.ca • 514 473-5315</strong>
+            <strong>info@moventratransport.ca • 438-229-9722</strong>
           </div>
         </div>`;
     }
@@ -485,33 +516,180 @@
       document.getElementById("sectionApercu").style.display = "none";
     };
 
+    function money(v) {
+      return (Number(v || 0)).toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $";
+    }
+
+    function buildPDFInvoice(f) {
+      const services = f.services || [];
+      const host = document.createElement("div");
+      host.className = "pdfInvoiceHost";
+      host.innerHTML = `
+        <div class="pdfInvoice">
+          <div class="pdfHeader">
+            <div class="pdfBrand">
+              <img src="logo.jpeg" alt="Moventra Transport">
+              <div>
+                <h2>Moventra Transport</h2>
+                <p>Déménagement résidentiel et commercial</p>
+                <p>Montréal • Rive-Sud • Rive-Nord</p>
+                <p>438-229-9722 • info@moventratransport.ca</p>
+              </div>
+            </div>
+            <div class="pdfMeta">
+              <div class="invoiceLabel">FACTURE</div>
+              <p><strong>${esc(f.numero || "")}</strong></p>
+              <p>Date : ${esc(f.date || "")}</p>
+              <p>Échéance : ${esc(f.echeance || "")}</p>
+            </div>
+          </div>
+
+          <div class="pdfClientGrid">
+            <div class="pdfBox">
+              <h4>Facturé par</h4>
+              <p><strong>Moventra Transport</strong></p>
+              <p>438-229-9722</p>
+              <p>info@moventratransport.ca</p>
+            </div>
+            <div class="pdfBox">
+              <h4>Facturé à</h4>
+              <p><strong>${esc(f.clientNom || "")}</strong></p>
+              <p>${esc(f.clientAdresse || "")}</p>
+              <p>${esc(f.clientPhone || "")}</p>
+              <p>${esc(f.clientEmail || "")}</p>
+            </div>
+          </div>
+
+          <table class="pdfTable">
+            <thead><tr><th>Description</th><th>Qté</th><th>Prix unitaire</th><th>Total</th></tr></thead>
+            <tbody>
+              ${services.map(s => `<tr><td>${esc(s.desc || "")}</td><td>${Number(s.qty || 0)}</td><td>${money(s.prix)}</td><td>${money(s.total)}</td></tr>`).join("")}
+            </tbody>
+          </table>
+
+          <div class="pdfTotals">
+            <div class="row"><span>Sous-total</span><strong>${money(f.sous)}</strong></div>
+            <div class="row"><span>TPS (5 %)</span><strong>${money(f.tps)}</strong></div>
+            <div class="row"><span>TVQ (9,975 %)</span><strong>${money(f.tvq)}</strong></div>
+            <div class="grand"><span>Total</span><span>${money(f.total)}</span></div>
+          </div>
+
+          ${f.note ? `<div class="pdfNote"><strong>Note :</strong><br>${esc(f.note)}</div>` : ""}
+
+          <div class="pdfFooter">
+            Merci de votre confiance.<br>
+            Paiement par virement Interac, chèque ou comptant.<br>
+            <strong>Moventra Transport • 438-229-9722 • info@moventratransport.ca</strong>
+          </div>
+        </div>`;
+      document.body.appendChild(host);
+      return host;
+    }
+
+    async function createInvoicePDFBlob(f) {
+      const host = buildPDFInvoice(f);
+      try {
+        const worker = html2pdf().set({
+          margin: 0,
+          filename: `${f.numero || "facture-moventra"}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollY: 0 },
+          jsPDF: { unit: "pt", format: "a4", orientation: "portrait", compress: true },
+          pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+        }).from(host.querySelector(".pdfInvoice")).toPdf();
+        const pdf = await worker.get("pdf");
+        return pdf.output("blob");
+      } finally {
+        host.remove();
+      }
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    function buildGmailMessage(f) {
+      return `Bonjour ${f.clientNom || ""},
+
+Veuillez trouver ci-joint votre facture ${f.numero || ""} d’un montant total de ${money(f.total)}.
+
+Date de la facture : ${f.date || ""}
+Date d’échéance : ${f.echeance || ""}
+
+Pour toute question, vous pouvez nous joindre au 438-229-9722 ou à info@moventratransport.ca.
+
+Merci de votre confiance,
+Moventra Transport`;
+    }
+
+    async function ensureFacture(statut = "brouillon") {
+      if (!document.getElementById("factClientNom").value.trim()) throw new Error("Entrez le nom du client.");
+      if (!getLignesData().length) throw new Error("Ajoutez au moins un service facturé.");
+      return sauvegarderFacture(statut);
+    }
+
     document.getElementById("btnImprimerFacture").onclick = () => {
-      const content = document.getElementById("facturePreviewContent").innerHTML;
-      const w = window.open("", "_blank");
-      w.document.write(`<!DOCTYPE html><html><head><title>Facture</title>
-        <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="admin.css">
-        <style>body{padding:30px;background:white}.facturePreview{box-shadow:none;border:none}</style>
-        </head><body>${content}<script>window.onload=()=>{window.print();window.close()}<\/script></body></html>`);
-      w.document.close();
+      window.print();
     };
 
-    // ===== ENVOYER PAR EMAIL =====
+    document.getElementById("btnTelechargerPDF").onclick = async () => {
+      const st = document.getElementById("factureStatus");
+      try {
+        st.textContent = "Création du PDF..."; st.style.color = "#006bd6";
+        const f = await ensureFacture("brouillon");
+        const blob = await createInvoicePDFBlob(f);
+        downloadBlob(blob, `${f.numero}.pdf`);
+        st.textContent = "✅ PDF téléchargé."; st.style.color = "#078b45";
+      } catch (e) {
+        st.textContent = "❌ " + (e.message || e); st.style.color = "#d21f3c";
+      }
+    };
+
+    // ===== ENVOYER AVEC GMAIL / PARTAGE NATIF =====
     document.getElementById("btnEnvoyerFacture").onclick = async () => {
       const email = document.getElementById("factClientEmail").value.trim();
       if (!email) { alert("Entrez l'email du client."); return; }
       const st = document.getElementById("factureStatus");
-      st.textContent = "Envoi..."; st.style.color = "#006bd6";
-      const f = await sauvegarderFacture("envoyée");
       try {
-        await emailjs.send("service_o6bm6tl", "template_c0smolo", {
-          to_email: email, to_name: f.clientNom, facture_numero: f.numero,
-          facture_total: f.total + "$", facture_date: f.date, facture_echeance: f.echeance,
-          services_details: f.services.map(s => `${s.desc} x${s.qty} = ${parseFloat(s.total).toFixed(2)}$`).join("\n"),
-          note: f.note || ""
-        });
-        st.textContent = "✅ Facture envoyée à " + email; st.style.color = "#078b45";
-      } catch(e) {
-        st.textContent = "❌ Erreur envoi: " + e.text; st.style.color = "#d21f3c";
+        st.textContent = "Préparation du PDF et du message..."; st.style.color = "#006bd6";
+        const f = await ensureFacture("envoyée");
+        const blob = await createInvoicePDFBlob(f);
+        const file = new File([blob], `${f.numero}.pdf`, { type: "application/pdf" });
+        const subject = `Facture ${f.numero} — Moventra Transport`;
+        const message = buildGmailMessage(f);
+
+        if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+          await navigator.share({
+            files: [file],
+            title: subject,
+            text: message
+          });
+          st.textContent = "✅ Facture partagée. Choisissez Gmail pour l’envoyer.";
+          st.style.color = "#078b45";
+          return;
+        }
+
+        // Repli ordinateur / navigateur sans partage de fichiers : téléchargement + ouverture Gmail.
+        downloadBlob(blob, `${f.numero}.pdf`);
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(message + "
+
+Le PDF a été téléchargé sur votre appareil. Joignez-le à ce message avant l’envoi.")}`;
+        window.open(gmailUrl, "_blank");
+        st.textContent = "✅ Gmail ouvert. Joignez le PDF téléchargé, puis envoyez.";
+        st.style.color = "#078b45";
+      } catch (e) {
+        if (e?.name === "AbortError") {
+          st.textContent = "Partage annulé."; st.style.color = "#60758d";
+        } else {
+          st.textContent = "❌ " + (e.message || e); st.style.color = "#d21f3c";
+        }
       }
     };
 
@@ -564,7 +742,7 @@
       const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
       const a = document.createElement("a");
       a.href = "data:text/csv;charset=utf-8,%EF%BB%BF" + encodeURIComponent(csv);
-      a.download = "factures-didierelo.csv";
+      a.download = "factures-moventra.csv";
       a.click();
     };
 
