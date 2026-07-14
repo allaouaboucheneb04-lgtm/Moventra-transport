@@ -87,9 +87,14 @@
 </div>
 
 <script type="module">
-import {auth,db} from './firebase-config.js';
-import {onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import {collection,getDocs,doc,setDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const $=id=>document.getElementById(id); const list=$('clients'), search=$('search'), sort=$('sort'), filter=$('filter');
 const modal=$('clientModal'), editModal=$('editModal'); let clients=[], selected=null, currentTab='overview', crmProfiles=new Map();
@@ -168,7 +173,11 @@ onAuthStateChanged(auth,async user=>{if(!user){location.href='login.html';return
   fs.forEach(d=>{const o={id:d.id,...d.data()},c=ensure(o),dt=asDate(o.createdAt)||asDate(val(o,'date'));o._date=dt?.getTime()||0;if(c){c.invoices.push(o);c.total+=Number(o.total||o.totalTTC||0);c.last=Math.max(c.last,o._date);if(o._date)c.first=Math.min(c.first,o._date)}});
   crmProfiles.forEach((p,k)=>{if(!map.has(k))map.set(k,{key:k,nom:val(p,'nom'),tel:val(p,'telephone'),email:val(p,'email'),adresse:val(p,'adresse'),notes:val(p,'notes'),submissions:[],invoices:[],total:0,last:asDate(p.updatedAt)?.getTime()||0,first:asDate(p.createdAt)?.getTime()||Date.now()})});
   clients=[...map.values()].map(c=>({...c,first:Number.isFinite(c.first)?c.first:c.last||Date.now(),search:norm([c.nom,c.tel,c.email,c.adresse,c.notes].join(' '))})); renderStats();render();
-}catch(e){list.innerHTML=`<div class="emptyState">Erreur : ${esc(e.message)}</div>`}});
+}catch(e){
+  console.error('Erreur CRM Clients:', e);
+  $('summary').textContent='Erreur de chargement';
+  list.innerHTML=`<div class="emptyState"><b>Impossible de charger les clients.</b><br>${esc(e?.message||e)}<br><br><button class="primaryAction" onclick="location.reload()">Réessayer</button></div>`;
+}});
 </script>
 <script src="admin-nav.js?v=clients-v1"></script>
 </body></html>
