@@ -145,7 +145,7 @@
     const db = getFirestore(app);
     let allClients = [];
 
-    emailjs.init({ publicKey: "n4Ln13zFITFZtnmdL" });
+    emailjs.init({ publicKey: "AuecG8oUqCqCiggFv" });
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { location.replace("login.html"); return; }
@@ -245,17 +245,28 @@
           });
           success++;
           await new Promise(r => setTimeout(r, 300));
-        } catch(e) { errors++; }
+        } catch(e) {
+          errors++;
+          console.error("Erreur EmailJS promotion:", e);
+          status.textContent = `❌ Erreur EmailJS: ${e?.text || e?.message || "envoi refusé"}`;
+          status.style.color = "#c62828";
+        }
       }
 
       btn.disabled = false;
-      status.textContent = `✅ ${success} email(s) envoyé(s)${errors ? " — ❌ " + errors + " erreur(s)" : ""}`;
-      status.style.color = errors ? "#c87000" : "#078b45";
+      if (!errors) {
+        status.textContent = `✅ ${success} email(s) envoyé(s)`;
+        status.style.color = "#078b45";
+      } else if (success) {
+        status.textContent = `✅ ${success} email(s) envoyé(s) — ❌ ${errors} erreur(s)`;
+        status.style.color = "#c87000";
+      }
     };
 
     function esc(v) {
       return String(v ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
     }
   </script>
+<script src="pwa-navigation.js?v=navfix-20260713-1"></script>
 </body>
 </html>

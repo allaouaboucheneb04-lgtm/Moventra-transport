@@ -5,4 +5,5 @@
 <pre id="o" style="white-space:pre-wrap;margin-top:20px"></pre>
 <script>
 document.getElementById("b").onclick=async()=>{const o=document.getElementById("o");try{o.textContent="Nettoyage...";if("caches"in window)for(const k of await caches.keys())await caches.delete(k);if("serviceWorker"in navigator)for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();sessionStorage.clear();localStorage.removeItem("didierelo_cache_clean_v6");o.textContent="OK. Supprime l’ancienne icône écran d’accueil, puis ajoute le site à l’écran d’accueil de nouveau.";setTimeout(()=>location.href="/Moventra-transport/login.html?fresh="+Date.now(),1800)}catch(e){o.textContent=e.message}}
-</script></body></html>
+</script><script src="pwa-navigation.js?v=navfix-20260713-1"></script>
+</body></html>
