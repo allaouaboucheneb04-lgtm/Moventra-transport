@@ -6,7 +6,7 @@ import { firebaseConfig, QUOTES_COLLECTION, TASKS_COLLECTION } from './firebase-
 const app=getApps().length?getApps()[0]:initializeApp(firebaseConfig);
 const auth=getAuth(app), db=getFirestore(app);
 const $=id=>document.getElementById(id);
-let all=[], activeStatus='all', acceptingId=null;
+let all=[], devisByQuote=new Map(), activeStatus='all', acceptingId=null;
 const statusLabels={nouvelle:'🟡 Nouvelle',devis_envoye:'🔵 Devis envoyé',acceptee:'🟢 Acceptée',refusee:'🔴 Refusée',archivee:'⚫ Archivée'};
 const val=(o,...ks)=>{for(const k of ks){const v=o?.[k];if(v!==undefined&&v!==null&&String(v).trim()!=='')return String(v).trim()}return''};
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -23,6 +23,7 @@ async function load(){
   try{
     let snap;try{snap=await getDocs(query(collection(db,QUOTES_COLLECTION),orderBy('createdAt','desc')))}catch{snap=await getDocs(collection(db,QUOTES_COLLECTION))}
     all=snap.docs.map(d=>({id:d.id,...d.data()}));
+    try{const ds=await getDocs(collection(db,'devis'));devisByQuote=new Map(ds.docs.map(d=>{const x={id:d.id,...d.data()};return[x.quoteId,x]}).filter(x=>x[0]))}catch(e){console.warn('Devis non chargés',e)}
     render();
   }catch(e){console.error(e);$('loadingState').hidden=true;$('errorState').hidden=false;$('errorState').innerHTML=`Impossible de charger les soumissions.<br><small>${esc(e.code||e.message)}</small>`}
 }
@@ -54,7 +55,7 @@ function card(q){
  <div class="submissionMainGrid"><div class="infoBox"><small>📦 Service</small><b>${esc(service)}</b></div><div class="infoBox"><small>📅 Date souhaitée</small><b>${esc(d||'À confirmer')}</b></div><div class="infoBox routeBox"><small>📍 Itinéraire</small><b>${esc(depart||'—')} → ${esc(dest||'—')}</b></div></div>
  ${latest?`<div class="timelinePreview"><b>Dernière activité :</b> ${esc(latest.label||latest.action||'Mise à jour')} · ${esc(fmt(latest.at||latest.date))}</div>`:''}
  <div class="submissionActions"><button class="actionBtn blue" data-view="${q.id}">👁 Voir</button>${phone?`<a class="actionBtn" href="tel:${esc(phone)}">📞 Appeler</a>`:''}${email?`<a class="actionBtn" href="mailto:${esc(email)}?subject=${encodeURIComponent('Votre demande Moventra Transport')}">✉️ Courriel</a>`:''}
- ${s==='nouvelle'?`<button class="actionBtn blue" data-status-change="devis_envoye" data-id="${q.id}">💲 Devis envoyé</button>`:''}
+ ${(()=>{const d=devisByQuote.get(q.id);return d?`<a class="actionBtn blue" href="devis.html?devisId=${d.id}&quoteId=${q.id}">✏️ Modifier devis</a><a class="actionBtn" href="devis.html?devisId=${d.id}&quoteId=${q.id}&action=print">📄 PDF</a><a class="actionBtn green" href="devis.html?devisId=${d.id}&quoteId=${q.id}&action=share">✉️ Envoyer</a>`:`<a class="actionBtn blue" href="devis.html?quoteId=${q.id}">💲 Créer un devis</a>`})()}
  ${['nouvelle','devis_envoye'].includes(s)?`<button class="actionBtn green" data-accept="${q.id}">✅ Accepter</button><button class="actionBtn red" data-status-change="refusee" data-id="${q.id}">❌ Refuser</button>`:''}
  ${s==='refusee'?`<button class="actionBtn" data-status-change="archivee" data-id="${q.id}">📦 Archiver</button>`:''}
  ${s==='acceptee'?`<a class="actionBtn green" href="dispatch.html?quoteId=${q.id}">👷 Voir dans Dispatch</a>`:''}</div></article>`
@@ -77,7 +78,7 @@ $('acceptForm').onsubmit=async e=>{e.preventDefault();const q=all.find(x=>x.id==
 function openDetails(id){const q=all.find(x=>x.id===id);if(!q)return;const s=normStatus(q),fields=[['Client',val(q,'name','nom')],['Téléphone',val(q,'phone','telephone')],['Courriel',val(q,'email','courriel')],['Service',val(q,'service')],['Date souhaitée',serviceDate(q)],['Type de logement',val(q,'propertyType','typeLogement')],['Étage au départ',val(q,'startFloor','etageDepart')],['Étage à l’arrivée',val(q,'endFloor','etageArrivee')],['Ascenseur',val(q,'elevator','ascenseur')],['Adresse de départ',val(q,'address','depart')],['Adresse d’arrivée',val(q,'destination','adresseArrivee','arrivalAddress')],['Montant estimé',val(q,'montantAdmin','estimation')?val(q,'montantAdmin','estimation')+' $':''],['Détails',val(q,'message','details')],['Note interne',val(q,'noteAdmin')],['Numéro de soumission',q.id]];
  $('dialogStatus').className=`statusPill status-${s}`;$('dialogStatus').textContent=statusLabels[s]||s;$('dialogTitle').textContent=val(q,'name','nom')||'Soumission';
  const timeline=[{label:'Soumission créée',at:q.createdAt},...(Array.isArray(q.timeline)?q.timeline:[])];
- $('dialogContent').innerHTML=`<div class="detailsGrid">${fields.filter(x=>x[1]).map(([k,v])=>`<div class="detailItem ${['Détails','Note interne'].includes(k)?'full':''}"><small>${esc(k)}</small><p>${esc(v)}</p></div>`).join('')}</div><section class="timeline"><h3>Historique</h3>${timeline.map(t=>`<div class="timelineItem"><b>${esc(t.label||t.action||'Mise à jour')}</b><small>${fmt(t.at||t.date)}</small></div>`).join('')}</section>`;$('detailsDialog').showModal()}
+ const d=devisByQuote.get(q.id); const quoteActions=d?`<div class="submissionActions" style="margin-top:16px"><a class="actionBtn blue" href="devis.html?devisId=${d.id}&quoteId=${q.id}">✏️ Modifier le devis</a><a class="actionBtn" href="devis.html?devisId=${d.id}&quoteId=${q.id}&action=print">📄 Télécharger PDF</a><a class="actionBtn green" href="devis.html?devisId=${d.id}&quoteId=${q.id}&action=share">✉️ Envoyer par courriel</a></div>`:`<div class="submissionActions" style="margin-top:16px"><a class="actionBtn blue" href="devis.html?quoteId=${q.id}">💲 Créer un devis</a></div>`; $('dialogContent').innerHTML=`<div class="detailsGrid">${fields.filter(x=>x[1]).map(([k,v])=>`<div class="detailItem ${['Détails','Note interne'].includes(k)?'full':''}"><small>${esc(k)}</small><p>${esc(v)}</p></div>`).join('')}</div>${quoteActions}<section class="timeline"><h3>Historique</h3>${timeline.map(t=>`<div class="timelineItem"><b>${esc(t.label||t.action||'Mise à jour')}</b><small>${fmt(t.at||t.date)}</small></div>`).join('')}</section>`;$('detailsDialog').showModal()}
 
 document.querySelectorAll('.statusTabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.statusTabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeStatus=b.dataset.status;render()});
 ['searchInput','periodFilter','sortFilter'].forEach(id=>$(id).addEventListener(id==='searchInput'?'input':'change',render));$('refreshBtn').onclick=load;

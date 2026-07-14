@@ -12,6 +12,7 @@ service cloud.firestore {
     match /demandes_soumission/{id} { allow create: if true; allow read, update, delete: if isAdmin(); }
     match /travaux/{id} { allow read: if isAdmin() || isEmployee(); allow create, update, delete: if isAdmin(); }
     match /factures/{id} { allow read, write: if isAdmin(); }
+    match /devis/{id} { allow read, write: if isAdmin(); }
     match /parametres/{id} { allow read, write: if isAdmin(); }
     match /promotions/{id} { allow read, write: if isAdmin(); }
     match /historique/{id} { allow read, write: if isAdmin(); }
