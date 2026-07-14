@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="admin-nav.css?v=clients-v1">
 <style>
 .submissionHistoryItem{cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}.submissionHistoryItem.expanded{background:#f7fbff}.detailChevron{border:0;background:#e8f3ff;color:#0968d8;border-radius:12px;width:44px;height:44px;font-size:28px;font-weight:800}.submissionDetailsSlot{grid-column:1/-1}.submissionFullDetails{margin-top:14px;padding:16px;border-radius:16px;background:#fff;border:1px solid #d7e7f8;display:grid;gap:10px}.submissionFullDetails>div:not(.submissionDetailActions){display:grid;grid-template-columns:minmax(120px,38%) 1fr;gap:12px;padding-bottom:9px;border-bottom:1px solid #edf2f7}.submissionFullDetails span{color:#667b93;font-weight:700}.submissionFullDetails strong{color:#102642;overflow-wrap:anywhere}.submissionDetailActions{padding-top:8px}.submissionDetailActions a{display:block;text-align:center;text-decoration:none}@media(max-width:560px){.submissionFullDetails>div:not(.submissionDetailActions){grid-template-columns:1fr}.submissionHistoryItem{grid-template-columns:1fr auto}}
+
+.clientQuickActions{grid-template-columns:repeat(5,minmax(0,1fr))}.timelineList{display:grid;gap:12px}.timelineItem{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start;padding:14px;border:1px solid #dbe8f7;border-radius:16px;background:#fff}.timelineIcon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#edf6ff;font-size:21px}.timelineItem h4{margin:0 0 5px;color:#102642}.timelineItem p,.timelineItem small{margin:0;color:#667b93}.missionStatus{display:inline-flex;padding:5px 9px;border-radius:999px;background:#eaf7ef;color:#157b45;font-size:12px;font-weight:800}.invoiceActions,.missionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.miniAction{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px;border-radius:10px;text-decoration:none;background:#eaf3ff;color:#0868d8;font-weight:800;border:0}.miniAction.primary{background:#0868d8;color:#fff}.clientSince{margin-top:7px;color:#71849b;font-size:14px}.submissionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:760px){.clientQuickActions{grid-template-columns:repeat(2,minmax(0,1fr))}.clientQuickActions .primary{grid-column:1/-1}.crmTabs{overflow-x:auto;justify-content:flex-start}.crmTab{flex:0 0 auto}.timelineItem{grid-template-columns:36px 1fr}.timelineIcon{width:36px;height:36px}}
 </style>
 </head>
 <body class="adminBody clientsPage">
@@ -62,12 +65,16 @@
     <div class="clientQuickActions">
       <a id="modalCall" class="quickAction" href="#">📞 Appeler</a>
       <a id="modalEmail" class="quickAction" href="#">✉️ Courriel</a>
-      <a id="modalInvoice" class="quickAction primary" href="facturation.html">🧾 Créer facture</a>
+      <a id="modalInvoice" class="quickAction primary" href="facturation.html">🧾 Nouvelle facture</a>
+      <a id="modalDispatch" class="quickAction" href="dispatch.html">👷 Nouveau dispatch</a>
+      <button id="modalEdit" class="quickAction" type="button">✏️ Modifier</button>
     </div>
     <div class="crmTabs">
       <button class="crmTab active" data-tab="overview">Aperçu</button>
       <button class="crmTab" data-tab="submissions">Soumissions</button>
       <button class="crmTab" data-tab="invoices">Factures</button>
+      <button class="crmTab" data-tab="missions">Missions</button>
+      <button class="crmTab" data-tab="timeline">Historique</button>
       <button class="crmTab" data-tab="notes">Notes</button>
     </div>
     <div id="modalContent"></div>
@@ -140,7 +147,12 @@ function render(){
     </article>`}).join(''):'<div class="emptyState">Aucun client ne correspond à cette recherche.</div>';
   list.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openClient(decodeURIComponent(b.dataset.open)));
 }
-function overviewHtml(c){return `<div class="overviewGrid"><section><h3>Coordonnées</h3><dl><dt>Nom</dt><dd>${esc(c.nom||'—')}</dd><dt>Téléphone</dt><dd>${esc(c.tel||'—')}</dd><dt>Courriel</dt><dd>${esc(c.email||'—')}</dd><dt>Adresse</dt><dd>${esc(c.adresse||'—')}</dd></dl><button id="editSelected" class="secondaryAction full">✏️ Modifier la fiche</button></section><section><h3>Résumé</h3><dl><dt>Client depuis</dt><dd>${c.first?fmt(new Date(c.first)):'—'}</dd><dt>Dernière activité</dt><dd>${c.last?fmt(new Date(c.last)):'—'}</dd><dt>Soumissions</dt><dd>${c.submissions.length}</dd><dt>Total facturé</dt><dd>${money(c.total)}</dd></dl></section></div>`}
+function overviewHtml(c){
+  const latest=[...c.submissions].sort((a,b)=>(b._date||0)-(a._date||0))[0];
+  const lastService=latest?val(latest,'service','typeService'):'—';
+  const regular=c.submissions.length>1?'⭐ Client régulier':'Nouveau client';
+  return `<div class="overviewGrid"><section><h3>Coordonnées</h3><dl><dt>Nom</dt><dd>${esc(c.nom||'—')}</dd><dt>Téléphone</dt><dd>${esc(c.tel||'—')}</dd><dt>Courriel</dt><dd>${esc(c.email||'—')}</dd><dt>Adresse</dt><dd>${esc(c.adresse||'—')}</dd></dl><button id="editSelected" class="secondaryAction full">✏️ Modifier la fiche</button></section><section><h3>Résumé client</h3><dl><dt>Client depuis</dt><dd>${c.first?fmt(new Date(c.first)):'—'}</dd><dt>Dernière activité</dt><dd>${c.last?fmt(new Date(c.last)):'—'}</dd><dt>Dernier service</dt><dd>${esc(lastService)}</dd><dt>Statut</dt><dd>${regular}</dd><dt>Soumissions</dt><dd>${c.submissions.length}</dd><dt>Factures</dt><dd>${c.invoices.length}</dd><dt>Total facturé</dt><dd>${money(c.total)}</dd></dl></section></div>`
+}
 function submissionDetailsHtml(o){
   const fields=[
     ['Client',val(o,'nom','name','clientNom')],
@@ -161,15 +173,27 @@ function submissionDetailsHtml(o){
 }
 function historyHtml(rows,type){
   if(!rows.length)return '<div class="emptyState">Aucun élément dans cet historique.</div>';
-  return [...rows].sort((a,b)=>(b._date||0)-(a._date||0)).map(o=>type==='submissions'?`<article class="historyItemPro submissionHistoryItem" data-submission-detail="${encodeURIComponent(o.id)}"><div><span class="historyDate">${fmt(val(o,'date','dateSouhaitee','dateDemenagement','createdAt'))}</span><h4>${esc(val(o,'service','typeService')||'Soumission')}</h4><p>📍 ${esc(val(o,'adresseDepart','depart')||'—')} → ${esc(val(o,'destination','adresseArrivee')||'—')}</p><small>Appuyez pour voir tous les détails</small></div><button type="button" class="detailChevron">›</button><div class="submissionDetailsSlot" hidden>${submissionDetailsHtml(o)}</div></article>`:`<article class="historyItemPro"><div><span class="historyDate">${fmt(val(o,'date','createdAt'))}</span><h4>${esc(val(o,'numero','numeroFacture')||o.id)}</h4><p>Statut : ${esc(val(o,'statut','status')||'—')}</p></div><b>${money(o.total||o.totalTTC||o.montantTotal||0)}</b></article>`).join('');
+  return [...rows].sort((a,b)=>(b._date||0)-(a._date||0)).map(o=>type==='submissions'?`<article class="historyItemPro submissionHistoryItem" data-submission-detail="${encodeURIComponent(o.id)}"><div><span class="historyDate">${fmt(val(o,'date','dateSouhaitee','dateDemenagement','createdAt'))}</span><h4>${esc(val(o,'service','typeService')||'Soumission')}</h4><p>📍 ${esc(val(o,'adresseDepart','depart')||'—')} → ${esc(val(o,'destination','adresseArrivee')||'—')}</p><small>Appuyez pour voir tous les détails</small><div class="submissionActions"><a class="miniAction primary" href="facturation.html?soumission=${encodeURIComponent(o.id)}">🧾 Facturer</a><a class="miniAction" href="dispatch.html?soumission=${encodeURIComponent(o.id)}">👷 Planifier</a></div></div><button type="button" class="detailChevron">›</button><div class="submissionDetailsSlot" hidden>${submissionDetailsHtml(o)}</div></article>`:`<article class="historyItemPro"><div><span class="historyDate">${fmt(val(o,'date','createdAt'))}</span><h4>${esc(val(o,'numero','numeroFacture')||o.id)}</h4><p>Statut : ${esc(val(o,'statut','status')||'—')}</p><div class="invoiceActions"><a class="miniAction primary" href="facturation.html?facture=${encodeURIComponent(o.id)}">👁 Voir</a><a class="miniAction" href="facturation.html?facture=${encodeURIComponent(o.id)}&action=pdf">📄 PDF</a><a class="miniAction" href="facturation.html?facture=${encodeURIComponent(o.id)}&action=email">✉️ Envoyer</a></div></div><b>${money(o.total||o.totalTTC||o.montantTotal||0)}</b></article>`).join('');
+}
+function missionsHtml(rows){
+  if(!rows.length)return '<div class="emptyState">Aucune mission dispatchée pour ce client.</div>';
+  return [...rows].sort((a,b)=>(b._date||0)-(a._date||0)).map(o=>`<article class="historyItemPro"><div><span class="historyDate">${fmt(val(o,'date','createdAt'))}</span><h4>${esc(val(o,'service')||'Mission')}</h4><p>👷 ${esc(val(o,'employeeName','employeNom')||'Employé non renseigné')}</p><p>📍 ${esc(val(o,'address','adresseDepart','depart')||'—')} → ${esc(val(o,'destination','adresseArrivee')||'—')}</p><div class="missionActions"><span class="missionStatus">${esc(val(o,'status','statut')||'Assignée')}</span><a class="miniAction" href="dispatch.html?mission=${encodeURIComponent(o.id)}">Ouvrir le dispatch</a></div></div></article>`).join('');
+}
+function timelineHtml(c){
+  const events=[];
+  c.submissions.forEach(o=>events.push({_date:o._date||0,icon:'📋',title:'Nouvelle soumission',text:`${val(o,'service','typeService')||'Service'} — ${val(o,'adresseDepart','depart')||'—'} → ${val(o,'destination','adresseArrivee')||'—'}`}));
+  c.invoices.forEach(o=>events.push({_date:o._date||0,icon:'🧾',title:`Facture ${val(o,'numero','numeroFacture')||o.id}`,text:`${money(o.total||o.totalTTC||o.montantTotal||0)} • ${val(o,'statut','status')||'Brouillon'}`}));
+  c.missions.forEach(o=>events.push({_date:o._date||0,icon:'👷',title:'Mission '+(val(o,'status','statut')||'assignée'),text:`${val(o,'employeeName','employeNom')||'Employé'} • ${val(o,'service')||'Service'}`}));
+  if(!events.length)return '<div class="emptyState">Aucune activité pour ce client.</div>';
+  return `<div class="timelineList">${events.sort((a,b)=>b._date-a._date).map(e=>`<article class="timelineItem"><div class="timelineIcon">${e.icon}</div><div><small>${e._date?fmt(new Date(e._date)):'Date inconnue'}</small><h4>${esc(e.title)}</h4><p>${esc(e.text)}</p></div></article>`).join('')}</div>`;
 }
 function renderModal(){
   if(!selected)return; $('modalAvatar').textContent=initials(selected.nom); $('modalName').textContent=selected.nom||'Client sans nom';
   $('modalContact').innerHTML=`📞 ${esc(selected.tel||'—')} &nbsp; • &nbsp; ✉️ ${esc(selected.email||'—')}<br>📍 ${esc(selected.adresse||'—')}`;
-  $('modalStats').innerHTML=`<div><b>${selected.submissions.length}</b><span>Soumissions</span></div><div><b>${selected.invoices.length}</b><span>Factures</span></div><div><b>${money(selected.total)}</b><span>Facturé</span></div>`;
-  $('modalInvoice').href=`facturation.html?client=${encodeURIComponent(selected.key)}`; $('modalCall').href=selected.tel?`tel:${selected.tel}`:'#'; $('modalEmail').href=selected.email?`mailto:${selected.email}`:'#';
+  $('modalStats').innerHTML=`<div><b>${selected.submissions.length}</b><span>Soumissions</span></div><div><b>${selected.invoices.length}</b><span>Factures</span></div><div><b>${money(selected.total)}</b><span>Facturé</span></div><div><b>${selected.missions.length}</b><span>Missions</span></div>`;
+  $('modalInvoice').href=`facturation.html?client=${encodeURIComponent(selected.key)}`; $('modalDispatch').href=`dispatch.html?client=${encodeURIComponent(selected.key)}`; $('modalCall').href=selected.tel?`tel:${selected.tel}`:'#'; $('modalEmail').href=selected.email?`mailto:${selected.email}`:'#'; $('modalEdit').onclick=()=>openEdit(selected);
   document.querySelectorAll('.crmTab').forEach(b=>b.classList.toggle('active',b.dataset.tab===currentTab));
-  $('modalContent').innerHTML=currentTab==='overview'?overviewHtml(selected):currentTab==='submissions'?historyHtml(selected.submissions,'submissions'):currentTab==='invoices'?historyHtml(selected.invoices,'invoices'):`<section class="notesPanel"><h3>Notes internes</h3><textarea id="clientNotes" rows="8" placeholder="Ajoutez des informations utiles sur ce client…">${esc(selected.notes||'')}</textarea><button id="saveNotes" class="primaryAction">💾 Enregistrer les notes</button><div id="notesStatus" class="adminStatus"></div></section>`;
+  $('modalContent').innerHTML=currentTab==='overview'?overviewHtml(selected):currentTab==='submissions'?historyHtml(selected.submissions,'submissions'):currentTab==='invoices'?historyHtml(selected.invoices,'invoices'):currentTab==='missions'?missionsHtml(selected.missions):currentTab==='timeline'?timelineHtml(selected):`<section class="notesPanel"><h3>Notes internes</h3><textarea id="clientNotes" rows="8" placeholder="Ajoutez des informations utiles sur ce client…">${esc(selected.notes||'')}</textarea><button id="saveNotes" class="primaryAction">💾 Enregistrer les notes</button><div id="notesStatus" class="adminStatus"></div></section>`;
   $('editSelected')?.addEventListener('click',()=>openEdit(selected)); $('saveNotes')?.addEventListener('click',saveNotes);
   $('modalContent').querySelectorAll('[data-submission-detail]').forEach(card=>card.addEventListener('click',e=>{
     if(e.target.closest('a')) return;
@@ -195,10 +219,10 @@ $('modalClose').onclick=closeModal; modal.onclick=e=>{if(e.target===modal)closeM
 document.querySelectorAll('.crmTab').forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;renderModal()});
 
 onAuthStateChanged(auth,async user=>{if(!user){location.href='login.html';return}try{
-  const [qs,fs,cs]=await Promise.all([getDocs(collection(db,'demandes_soumission')),getDocs(collection(db,'factures')),getDocs(collection(db,'clients')).catch(()=>({forEach:()=>{}}))]);
+  const [qs,fs,ts,cs]=await Promise.all([getDocs(collection(db,'demandes_soumission')),getDocs(collection(db,'factures')),getDocs(collection(db,'taches')).catch(()=>({forEach:()=>{}})),getDocs(collection(db,'clients')).catch(()=>({forEach:()=>{}}))]);
   cs.forEach?.(d=>{const o={id:d.id,...d.data()},k=o.clientKey||keyOf(o);if(k)crmProfiles.set(k,o)});
   const map=new Map();
-  const ensureSubmission=o=>{const k=keyOf(o);if(!k)return null;if(!map.has(k)){const p=crmProfiles.get(k)||{};map.set(k,{key:k,nom:val(p,'nom')||val(o,'nom','name','clientNom'),tel:val(p,'telephone')||val(o,'telephone','phone','tel','clientTelephone'),email:val(p,'email')||val(o,'email','courriel','clientEmail'),adresse:val(p,'adresse')||val(o,'adresseDepart','depart','adresse','clientAdresse'),notes:val(p,'notes'),submissions:[],invoices:[],total:0,last:0,first:Infinity})}return map.get(k)};
+  const ensureSubmission=o=>{const k=keyOf(o);if(!k)return null;if(!map.has(k)){const p=crmProfiles.get(k)||{};map.set(k,{key:k,nom:val(p,'nom')||val(o,'nom','name','clientNom'),tel:val(p,'telephone')||val(o,'telephone','phone','tel','clientTelephone'),email:val(p,'email')||val(o,'email','courriel','clientEmail'),adresse:val(p,'adresse')||val(o,'adresseDepart','depart','adresse','clientAdresse'),notes:val(p,'notes'),submissions:[],invoices:[],missions:[],total:0,last:0,first:Infinity})}return map.get(k)};
   qs.forEach(d=>{const o={id:d.id,...d.data()},c=ensureSubmission(o),dt=asDate(o.createdAt)||asDate(val(o,'date','dateSouhaitee','dateDemenagement'));o._date=dt?.getTime()||0;if(c){c.submissions.push(o);c.last=Math.max(c.last,o._date);if(o._date)c.first=Math.min(c.first,o._date)}});
   const findClientForInvoice=o=>{
     const email=norm(val(o,'clientEmail','email','courriel'));
@@ -207,11 +231,12 @@ onAuthStateChanged(auth,async user=>{if(!user){location.href='login.html';return
     let c=[...map.values()].find(x=>email&&norm(x.email)===email);
     if(!c)c=[...map.values()].find(x=>tel&&phone(x.tel)===tel);
     if(!c)c=[...map.values()].find(x=>nom&&norm(x.nom)===nom);
-    if(!c){const k=keyOf(o)||`invoice:${o.id}`;if(!map.has(k))map.set(k,{key:k,nom:val(o,'clientNom','nom','name')||'Client sans nom',tel:val(o,'clientPhone','telephone','phone'),email:val(o,'clientEmail','email','courriel'),adresse:val(o,'clientAdresse','adresse','adresseDepart','depart'),notes:'',submissions:[],invoices:[],total:0,last:0,first:Infinity});c=map.get(k)}
+    if(!c){const k=keyOf(o)||`invoice:${o.id}`;if(!map.has(k))map.set(k,{key:k,nom:val(o,'clientNom','nom','name')||'Client sans nom',tel:val(o,'clientPhone','telephone','phone'),email:val(o,'clientEmail','email','courriel'),adresse:val(o,'clientAdresse','adresse','adresseDepart','depart'),notes:'',submissions:[],invoices:[],missions:[],total:0,last:0,first:Infinity});c=map.get(k)}
     return c;
   };
   fs.forEach(d=>{const o={id:d.id,...d.data()},c=findClientForInvoice(o),dt=asDate(o.createdAt)||asDate(val(o,'date'));o._date=dt?.getTime()||0;if(c){c.invoices.push(o);c.total+=Number(o.total||o.totalTTC||o.montantTotal||0);c.last=Math.max(c.last,o._date);if(o._date)c.first=Math.min(c.first,o._date)}});
-  crmProfiles.forEach((p,k)=>{if(!map.has(k))map.set(k,{key:k,nom:val(p,'nom'),tel:val(p,'telephone'),email:val(p,'email'),adresse:val(p,'adresse'),notes:val(p,'notes'),submissions:[],invoices:[],total:0,last:asDate(p.updatedAt)?.getTime()||0,first:asDate(p.createdAt)?.getTime()||Date.now()})});
+  ts.forEach?.(d=>{const o={id:d.id,...d.data()};const email=norm(val(o,'email','clientEmail','courriel'));const tel=phone(val(o,'phone','telephone','clientPhone'));const nom=norm(val(o,'clientName','clientNom','nom','name'));let c=[...map.values()].find(x=>email&&norm(x.email)===email);if(!c)c=[...map.values()].find(x=>tel&&phone(x.tel)===tel);if(!c)c=[...map.values()].find(x=>nom&&norm(x.nom)===nom);if(c){const dt=asDate(o.createdAt)||asDate(val(o,'date'));o._date=dt?.getTime()||0;c.missions.push(o);c.last=Math.max(c.last,o._date);if(o._date)c.first=Math.min(c.first,o._date)}});
+  crmProfiles.forEach((p,k)=>{if(!map.has(k))map.set(k,{key:k,nom:val(p,'nom'),tel:val(p,'telephone'),email:val(p,'email'),adresse:val(p,'adresse'),notes:val(p,'notes'),submissions:[],invoices:[],missions:[],total:0,last:asDate(p.updatedAt)?.getTime()||0,first:asDate(p.createdAt)?.getTime()||Date.now()})});
   clients=[...map.values()].map(c=>({...c,first:Number.isFinite(c.first)?c.first:c.last||Date.now(),search:norm([c.nom,c.tel,c.email,c.adresse,c.notes].join(' '))})); renderStats();render();
 }catch(e){
   console.error('Erreur CRM Clients:', e);
