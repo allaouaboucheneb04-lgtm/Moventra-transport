@@ -118,6 +118,7 @@ onAuthStateChanged(auth, async (user) => {
     await loadAll();
     setupRealtimeQuotes();
     loadStats();
+    loadDashboardOverview();
   } catch (error) {
     console.error(error);
     showDebug("Erreur chargement admin: " + (error.code || error.message || error), true);
@@ -630,4 +631,130 @@ if (notifBtnMobile) {
     const desktopBtn = document.getElementById("enableNotificationsBtn");
     if (desktopBtn) desktopBtn.click();
   };
+}
+
+
+// ========== TABLEAU DE BORD COMPLET ==========
+function asDate(value) {
+  if (!value) return null;
+  try {
+    if (typeof value.toDate === "function") return value.toDate();
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  } catch (_) { return null; }
+}
+function sameDay(a, b) {
+  return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function sameMonth(a, b) {
+  return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+function dateFromRecord(record) {
+  return asDate(record.date || record.serviceDate || record.dateSouhaitee || record.dateSouhaitée || record.startDate || record.createdAt);
+}
+function moneyCAD(value) {
+  return Number(value || 0).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
+}
+function shortDate(value) {
+  const d = asDate(value);
+  return d ? d.toLocaleDateString("fr-CA", { day: "numeric", month: "short" }) : "—";
+}
+function fullDateTime(value) {
+  const d = asDate(value);
+  return d ? d.toLocaleString("fr-CA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Date inconnue";
+}
+function recordName(record) {
+  return record.name || record.nom || record.clientNom || record.customerName || "Client";
+}
+function recordService(record) {
+  return record.service || record.typeService || record.description || "Service Moventra";
+}
+
+async function safeCollection(name) {
+  try {
+    const snap = await getDocs(collection(db, name));
+    const rows = [];
+    snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+    return rows;
+  } catch (error) {
+    console.warn("Dashboard collection inaccessible:", name, error.code || error.message);
+    return [];
+  }
+}
+
+async function loadDashboardOverview() {
+  const dateEl = $("dashboardDate");
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  const [quotes, tasks, invoices, notifications] = await Promise.all([
+    safeCollection(QUOTES_COLLECTION),
+    safeCollection(TASKS_COLLECTION),
+    safeCollection("factures"),
+    safeCollection("notifications")
+  ]);
+
+  const now = new Date();
+  const quotesToday = quotes.filter(q => sameDay(asDate(q.createdAt), now));
+  const quotesMonth = quotes.filter(q => sameMonth(asDate(q.createdAt), now));
+  const invoicesMonth = invoices.filter(f => sameMonth(asDate(f.createdAt) || asDate(f.date), now));
+  const monthlyRevenue = invoicesMonth
+    .filter(f => String(f.statut || "").toLowerCase() !== "annulée")
+    .reduce((sum, f) => sum + Number(f.total || 0), 0);
+  const activeTasks = tasks.filter(t => !["terminé", "annulé"].includes(String(t.status || "").toLowerCase()));
+  const tasksToday = tasks.filter(t => sameDay(dateFromRecord(t), now));
+  const busyEmployeeIds = new Set(activeTasks.map(t => t.employeeId || t.assignedTo).filter(Boolean));
+  const availableEmployees = employees.filter(e => e.active !== false && e.actif !== false && !busyEmployeeIds.has(e.id));
+  const unreadNotifications = notifications.filter(n => n.read !== true && n.lu !== true && n.status !== "read");
+
+  setText("dashQuotesToday", quotesToday.length);
+  setText("dashQuotesMonth", `${quotesMonth.length} ce mois-ci`);
+  setText("dashRevenueMonth", moneyCAD(monthlyRevenue));
+  setText("dashInvoicesMonth", `${invoicesMonth.length} facture(s)`);
+  setText("dashActiveTasks", activeTasks.length);
+  setText("dashTasksToday", `${tasksToday.length} prévue(s) aujourd’hui`);
+  setText("dashAvailableEmployees", availableEmployees.length);
+  setText("dashEmployeesTotal", `${employees.length} au total`);
+  setText("dashUnreadNotifications", unreadNotifications.length);
+
+  const assignedQuotes = quotesMonth.filter(q => ["assigné", "en cours", "terminé"].includes(String(q.status || "").toLowerCase())).length;
+  const conversionRate = quotesMonth.length ? Math.round((assignedQuotes / quotesMonth.length) * 100) : 0;
+  const paidInvoices = invoicesMonth.filter(f => ["payée", "paye", "payé", "paid"].includes(String(f.statut || "").toLowerCase())).length;
+  const paidRate = invoicesMonth.length ? Math.round((paidInvoices / invoicesMonth.length) * 100) : 0;
+  setText("dashConversionRate", `${conversionRate} %`);
+  setText("dashPaidRate", `${paidRate} %`);
+  const conversionBar = $("dashConversionBar"); if (conversionBar) conversionBar.style.width = `${Math.min(100, conversionRate)}%`;
+  const paidBar = $("dashPaidBar"); if (paidBar) paidBar.style.width = `${Math.min(100, paidRate)}%`;
+
+  const serviceCounts = {};
+  quotesMonth.forEach(q => { const service = recordService(q); serviceCounts[service] = (serviceCounts[service] || 0) + 1; });
+  const topService = Object.entries(serviceCounts).sort((a,b) => b[1] - a[1])[0];
+  setText("dashTopService", topService ? `${topService[0]} (${topService[1]})` : "Aucune donnée");
+
+  renderDashboardActivity(quotes, tasks, invoices);
+  renderDashboardUpcoming(quotes, tasks);
+}
+
+function renderDashboardActivity(quotes, tasks, invoices) {
+  const box = $("dashboardRecentActivity");
+  if (!box) return;
+  const items = [
+    ...quotes.map(q => ({ type: "quote", icon: "📋", title: `Nouvelle soumission — ${recordName(q)}`, detail: recordService(q), date: asDate(q.createdAt) })),
+    ...tasks.map(t => ({ type: "task", icon: "🚚", title: `Mission ${t.status || "assignée"} — ${recordName(t)}`, detail: t.employeeName || t.assignedToName || recordService(t), date: asDate(t.updatedAt) || asDate(t.createdAt) })),
+    ...invoices.map(f => ({ type: "invoice", icon: "🧾", title: `Facture ${f.numero || ""} — ${f.clientNom || "Client"}`, detail: `${moneyCAD(f.total)} • ${f.statut || "brouillon"}`, date: asDate(f.updatedAt) || asDate(f.createdAt) || asDate(f.date) }))
+  ].filter(i => i.date).sort((a,b) => b.date - a.date).slice(0, 7);
+  if (!items.length) { box.innerHTML = '<p class="dashboardEmpty">Aucune activité récente.</p>'; return; }
+  box.innerHTML = items.map(i => `<div class="activityItem"><div class="activityIcon">${i.icon}</div><div class="activityText"><strong>${escapeHtml(i.title)}</strong><span>${escapeHtml(i.detail)}</span></div><time class="activityTime">${escapeHtml(fullDateTime(i.date))}</time></div>`).join("");
+}
+
+function renderDashboardUpcoming(quotes, tasks) {
+  const box = $("dashboardUpcoming");
+  if (!box) return;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const upcoming = [
+    ...quotes.map(q => ({ title: `${recordService(q)} — ${recordName(q)}`, detail: `${q.depart || q.address || "Départ à confirmer"}${q.destination ? " → " + q.destination : ""}`, date: dateFromRecord(q), status: q.status || "soumission" })),
+    ...tasks.map(t => ({ title: `${recordService(t)} — ${recordName(t)}`, detail: `${t.employeeName || t.assignedToName || "Employé à confirmer"} • ${t.status || "assigné"}`, date: dateFromRecord(t), status: t.status || "mission" }))
+  ].filter(i => i.date && i.date >= now && !["terminé", "annulé"].includes(String(i.status).toLowerCase()))
+   .sort((a,b) => a.date - b.date).slice(0, 6);
+  if (!upcoming.length) { box.innerHTML = '<p class="dashboardEmpty">Aucun rendez-vous à venir.</p>'; return; }
+  box.innerHTML = upcoming.map(i => `<div class="upcomingItem"><div class="upcomingDate">${i.date.getDate()}<small>${i.date.toLocaleDateString("fr-CA",{month:"short"})}</small></div><div class="upcomingText"><strong>${escapeHtml(i.title)}</strong><span>${escapeHtml(i.detail)}</span></div></div>`).join("");
 }

@@ -19,7 +19,7 @@
   <title>Administration | Moventra Transport</title>
   <link rel="icon" href="logo.jpeg">
   <link rel="stylesheet" href="style.css?v=adminfix-20260713-1">
-  <link rel="stylesheet" href="admin.css?v=menufix-20260713-2">
+  <link rel="stylesheet" href="admin.css?v=dashboard-v1">
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" href="logo.jpeg">
   <meta name="theme-color" content="#006bd6">
@@ -63,19 +63,78 @@
   </header>
 
   <main class="adminMain">
-    <section class="adminHero">
-      <span class="adminBadge">Tableau de bord</span>
-      <h1>Gestion des soumissions et travaux</h1>
-      <p>Les clients ne voient pas cette page. Espace privé pour gérer les demandes, les travaux et les employés de Moventra Transport.</p>
+    <section class="dashboardWelcome">
+      <div>
+        <span class="adminBadge">Tableau de bord</span>
+        <h1>Bonjour, bienvenue chez Moventra</h1>
+        <p>Voici un aperçu en temps réel des soumissions, missions, factures et employés.</p>
+      </div>
+      <div class="dashboardDate" id="dashboardDate">—</div>
     </section>
 
-    <section class="adminStats">
-      <div><strong id="countQuotes">0</strong><span>Soumissions</span></div>
-      <div><strong id="countTasks">0</strong><span>Travaux</span></div>
+    <section class="dashboardKpis" aria-label="Statistiques principales">
+      <a class="dashboardKpi blue" href="#soumissions">
+        <span class="kpiIcon">📋</span>
+        <div><strong id="dashQuotesToday">0</strong><span>Soumissions aujourd’hui</span><small id="dashQuotesMonth">0 ce mois-ci</small></div>
+      </a>
+      <a class="dashboardKpi green" href="facturation.html">
+        <span class="kpiIcon">💰</span>
+        <div><strong id="dashRevenueMonth">0,00 $</strong><span>Revenus du mois</span><small id="dashInvoicesMonth">0 facture(s)</small></div>
+      </a>
+      <a class="dashboardKpi orange" href="dispatch.html">
+        <span class="kpiIcon">🚚</span>
+        <div><strong id="dashActiveTasks">0</strong><span>Missions en cours</span><small id="dashTasksToday">0 prévue(s) aujourd’hui</small></div>
+      </a>
+      <a class="dashboardKpi purple" href="employes.html">
+        <span class="kpiIcon">👨‍💼</span>
+        <div><strong id="dashAvailableEmployees">0</strong><span>Employés disponibles</span><small id="dashEmployeesTotal">0 au total</small></div>
+      </a>
+      <a class="dashboardKpi red" href="notification-test.html">
+        <span class="kpiIcon">🔔</span>
+        <div><strong id="dashUnreadNotifications">0</strong><span>Notifications non lues</span><small>Nouvelles alertes</small></div>
+      </a>
+    </section>
+
+    <section class="dashboardGrid">
+      <article class="dashboardPanel dashboardQuickPanel">
+        <div class="dashboardPanelHead"><div><span class="adminBadge">Accès rapide</span><h2>Que voulez-vous faire?</h2></div></div>
+        <div class="dashboardQuickActions">
+          <a href="#soumissions"><span>📋</span><b>Voir les soumissions</b><small>Consulter et traiter les nouvelles demandes</small></a>
+          <a href="clients.html"><span>👥</span><b>Rechercher un client</b><small>Historique, coordonnées et factures</small></a>
+          <a href="facturation.html"><span>🧾</span><b>Créer une facture</b><small>Facture PDF et partage Gmail</small></a>
+          <a href="dispatch.html"><span>👷</span><b>Planifier une mission</b><small>Assigner un employé et suivre le travail</small></a>
+          <a href="calendrier.html"><span>📅</span><b>Ouvrir le calendrier</b><small>Voir les missions et échéances</small></a>
+          <a href="promotions.html"><span>🎉</span><b>Lancer une promotion</b><small>Envoyer une campagne aux clients</small></a>
+        </div>
+      </article>
+
+      <article class="dashboardPanel">
+        <div class="dashboardPanelHead"><div><span class="adminBadge">Activité récente</span><h2>Dernières opérations</h2></div><a href="historique.html">Tout voir</a></div>
+        <div id="dashboardRecentActivity" class="dashboardActivity"><p class="dashboardLoading">Chargement…</p></div>
+      </article>
+    </section>
+
+    <section class="dashboardGrid dashboardGridBottom">
+      <article class="dashboardPanel">
+        <div class="dashboardPanelHead"><div><span class="adminBadge">À venir</span><h2>Prochains rendez-vous</h2></div><a href="calendrier.html">Calendrier</a></div>
+        <div id="dashboardUpcoming" class="dashboardUpcoming"><p class="dashboardLoading">Chargement…</p></div>
+      </article>
+      <article class="dashboardPanel">
+        <div class="dashboardPanelHead"><div><span class="adminBadge">Performance</span><h2>Résumé du mois</h2></div></div>
+        <div class="dashboardPerformance">
+          <div><span>Taux de conversion</span><strong id="dashConversionRate">0 %</strong><div class="progress"><i id="dashConversionBar"></i></div></div>
+          <div><span>Factures payées</span><strong id="dashPaidRate">0 %</strong><div class="progress green"><i id="dashPaidBar"></i></div></div>
+          <div class="dashboardTopService"><span>Service le plus demandé</span><strong id="dashTopService">—</strong></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="adminStats legacyStats">
+      <div><strong id="countQuotes">0</strong><span>Soumissions totales</span></div>
+      <div><strong id="countTasks">0</strong><span>Travaux actifs</span></div>
       <div><strong id="countEmployees">0</strong><span>Employés</span></div>
     </section>
 
-    
     <!-- Réseaux sociaux -->
     <section class="panel">
       <div class="panelHead">
@@ -209,7 +268,7 @@
   });
 })();
 </script>
-  <script type="module" src="admin-v3.js?v=menufix-20260713-2"></script>
+  <script type="module" src="admin-v3.js?v=dashboard-v1"></script>
 <script src="pwa.js?v=20260713-0055"></script>
 <script src="push.js?v=onesignal-moventra-20260713-2" defer></script>
 
