@@ -702,8 +702,21 @@ async function loadDashboardOverview() {
     .reduce((sum, f) => sum + Number(f.total || 0), 0);
   const activeTasks = tasks.filter(t => !["terminé", "annulé"].includes(String(t.status || "").toLowerCase()));
   const tasksToday = tasks.filter(t => sameDay(dateFromRecord(t), now));
-  const busyEmployeeIds = new Set(activeTasks.map(t => t.employeeId || t.assignedTo).filter(Boolean));
-  const availableEmployees = employees.filter(e => e.active !== false && e.actif !== false && !busyEmployeeIds.has(e.id));
+  // Regroupe les soumissions d'une même personne en une seule fiche client.
+  // Priorité : courriel, puis téléphone, puis nom + adresse.
+  const clientMap = new Map();
+  quotes.forEach(q => {
+    const email = String(q.email || q.courriel || q.clientEmail || "").trim().toLowerCase();
+    const phone = String(q.telephone || q.phone || q.clientPhone || "").replace(/\D/g, "");
+    const name = String(q.nom || q.name || q.clientNom || "").trim().toLowerCase();
+    const address = String(q.depart || q.adresse || q.address || "").trim().toLowerCase();
+    const key = email ? `email:${email}` : phone ? `phone:${phone}` : `name:${name}|${address}`;
+    const created = asDate(q.createdAt) || dateFromRecord(q);
+    if (!clientMap.has(key)) clientMap.set(key, { firstSeen: created });
+    else if (created && (!clientMap.get(key).firstSeen || created < clientMap.get(key).firstSeen)) clientMap.get(key).firstSeen = created;
+  });
+  const clients = Array.from(clientMap.values());
+  const newClientsMonth = clients.filter(c => sameMonth(c.firstSeen, now));
   const unreadNotifications = notifications.filter(n => n.read !== true && n.lu !== true && n.status !== "read");
 
   setText("dashQuotesToday", quotesToday.length);
@@ -712,8 +725,8 @@ async function loadDashboardOverview() {
   setText("dashInvoicesMonth", `${invoicesMonth.length} facture(s)`);
   setText("dashActiveTasks", activeTasks.length);
   setText("dashTasksToday", `${tasksToday.length} prévue(s) aujourd’hui`);
-  setText("dashAvailableEmployees", availableEmployees.length);
-  setText("dashEmployeesTotal", `${employees.length} au total`);
+  setText("dashClientsTotal", clients.length);
+  setText("dashNewClientsMonth", `${newClientsMonth.length} nouveau(x) ce mois`);
   setText("dashUnreadNotifications", unreadNotifications.length);
 
   const assignedQuotes = quotesMonth.filter(q => ["assigné", "en cours", "terminé"].includes(String(q.status || "").toLowerCase())).length;
