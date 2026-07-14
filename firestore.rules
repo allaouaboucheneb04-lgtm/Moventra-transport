@@ -16,6 +16,7 @@ service cloud.firestore {
     match /promotions/{id} { allow read, write: if isAdmin(); }
     match /historique/{id} { allow read, write: if isAdmin(); }
     match /notifications/{id} { allow read, write: if signedIn(); }
+    match /clients/{id} { allow read, write: if isAdmin(); }
     match /{document=**} { allow read, write: if false; }
   }
 }
