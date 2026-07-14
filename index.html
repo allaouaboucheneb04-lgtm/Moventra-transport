@@ -81,7 +81,7 @@
     <label>Distance camion → porte<select name="doorDistance"><option value="">Sélectionner</option><option>Moins de 10 m</option><option>10 à 25 m</option><option>25 à 50 m</option><option>Plus de 50 m</option></select></label>
 
     <section class="inventorySection full" aria-labelledby="inventoryTitle">
-      <div class="inventoryHeader"><div><span class="inventoryEyebrow">Estimation des besoins</span><h3 id="inventoryTitle">Inventaire à déménager</h3><p>Utilisez les boutons − et +. Vous pouvez laisser les éléments à zéro.</p></div><div class="estimateBadge"><small>Estimation préliminaire</small><b id="estimatedVolume">0 m³</b><span id="estimatedCrew">Ajoutez vos articles</span></div></div>
+      <div class="inventoryHeader"><div><span class="inventoryEyebrow">Inventaire</span><h3 id="inventoryTitle">Inventaire à déménager</h3><p>Utilisez les boutons − et +. Vous pouvez laisser les éléments à zéro.</p></div></div>
       <div id="inventoryGrid" class="inventoryGrid">
         <div class="inventoryGroup"><h4>🍳 Cuisine</h4>
           <div class="counterRow" data-item="refrigerateur" data-label="Réfrigérateur" data-volume="1.2"><span>Réfrigérateur</span><div><button type="button" data-minus>−</button><output>0</output><button type="button" data-plus>+</button><input type="hidden" name="inv_refrigerateur" value="0"></div></div>
@@ -122,10 +122,8 @@
         </div>
       </div>
       <label class="full inventoryOther">Autres objets importants<textarea name="inventoryOther" rows="3" placeholder="Décrivez les autres meubles, objets fragiles ou très lourds..."></textarea></label>
-      <div class="inventoryAdvice"><b>ℹ️ Estimation préliminaire seulement.</b> Le prix final sera confirmé par Moventra après vérification de votre demande.</div>
     </section>
 
-    <label class="full photoUpload">Photos facultatives<input id="submissionPhotos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple><small>Maximum 6 photos, 5 Mo chacune : pièces, escaliers, entrée ou objets lourds.</small><div id="photoPreview" class="photoPreview"></div></label>
     <label class="full">Détails<textarea name="message" rows="5" placeholder="Accès, stationnement, objets fragiles, précisions utiles..."></textarea></label>
     <button id="submitBtn" class="full" type="submit">Envoyer ma demande</button><p id="formStatus" class="full"></p>
   </form>

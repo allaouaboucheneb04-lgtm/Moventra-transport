@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBeDOLjFyONjv06dUc4b_R0lQ4AlSBPU2U",
@@ -14,7 +13,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 if (window.emailjs) {
   emailjs.init("AuecG8oUqCqCiggFv");
@@ -24,7 +22,6 @@ const form = document.getElementById("quoteForm");
 const statusEl = document.getElementById("formStatus");
 const submitBtn = document.getElementById("submitBtn");
 
-const photoInput = document.getElementById("submissionPhotos");
 const inventoryRows = [...document.querySelectorAll(".counterRow[data-item]")];
 
 function inventorySnapshot() {
@@ -79,35 +76,6 @@ inventoryRows.forEach((row) => {
 });
 form?.elements?.rooms?.addEventListener("input", refreshInventoryEstimate);
 
-photoInput?.addEventListener("change", () => {
-  const files = [...photoInput.files].slice(0, 6);
-  if (photoInput.files.length > 6) alert("Maximum 6 photos.");
-  const preview = document.getElementById("photoPreview");
-  preview.innerHTML = "";
-  files.forEach((file) => {
-    const img = document.createElement("img");
-    img.alt = file.name;
-    img.src = URL.createObjectURL(file);
-    img.onload = () => URL.revokeObjectURL(img.src);
-    preview.appendChild(img);
-  });
-});
-
-async function uploadSubmissionPhotos(submissionId, files) {
-  const selected = files.slice(0, 6);
-  const urls = [];
-  for (let i = 0; i < selected.length; i++) {
-    const file = selected[i];
-    if (!file.type.startsWith("image/")) continue;
-    if (file.size > 5 * 1024 * 1024) throw new Error(`${file.name} dépasse 5 Mo.`);
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storageRef = ref(storage, `submission-photos/${submissionId}/${Date.now()}-${i}-${safeName}`);
-    await uploadBytes(storageRef, file, { contentType: file.type });
-    urls.push(await getDownloadURL(storageRef));
-  }
-  return urls;
-}
-
 async function sendMoventraWebhook(data, submissionId) {
   const url = String(window.MOVENTRA_WEBHOOK_URL || "").trim();
   if (!url) {
@@ -152,13 +120,12 @@ form?.addEventListener("submit", async (event) => {
   const raw = new FormData(form);
   const data = {};
   for (const [key, value] of raw.entries()) {
-    if (key === "photos" || key.startsWith("inv_")) continue;
+    if (key.startsWith("inv_")) continue;
     data[key] = typeof value === "string" ? value : "";
   }
   const { inventory, estimate } = inventorySnapshot();
   data.inventory = inventory;
   data.inventoryEstimate = estimate;
-  const photoFiles = photoInput ? [...photoInput.files].slice(0, 6) : [];
 
   submitBtn.disabled = true;
   submitBtn.textContent = "Envoi en cours...";
@@ -183,19 +150,12 @@ form?.addEventListener("submit", async (event) => {
       inventoryOther: data.inventoryOther || "",
       inventory,
       inventoryEstimate: estimate,
-      photos: [],
       status: "nouveau",
       source: "site_moventra",
       createdAt: serverTimestamp()
     };
 
     const docRef = await addDoc(collection(db, "demandes_soumission"), submission);
-    if (photoFiles.length) {
-      statusEl.textContent = "Téléversement des photos…";
-      const photoUrls = await uploadSubmissionPhotos(docRef.id, photoFiles);
-      await updateDoc(doc(db, "demandes_soumission", docRef.id), { photos: photoUrls });
-    }
-
     const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
     if (window.emailjs) {
       secondaryTasks.push(emailjs.send("service_o6bm6tl", "template_c0smolo", {
@@ -225,7 +185,6 @@ form?.addEventListener("submit", async (event) => {
     statusEl.style.color = "#078b45";
     form.reset();
     inventoryRows.forEach(row=>{const i=row.querySelector('input[type="hidden"]'),o=row.querySelector('output');i.value=0;o.value=0;o.textContent='0'});
-    document.getElementById("photoPreview").innerHTML = "";
     refreshInventoryEstimate();
   } catch (error) {
     console.error(error);
