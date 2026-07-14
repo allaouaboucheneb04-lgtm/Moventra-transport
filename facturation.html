@@ -100,6 +100,31 @@
     .clientHistoriqueItem strong { color: #0a1628; }
     .montantTotal { font-size: 1.1rem; color: #006bd6; font-weight: 900; }
 
+    .client-search-wrap { position: relative; width: 100%; }
+    .client-search-input {
+      width: 100%; box-sizing: border-box; padding: 15px 16px 15px 46px;
+      border: 2px solid #cfe2f7; border-radius: 16px; background: #fff;
+      font-size: 1rem; color: #0a1628; outline: none;
+    }
+    .client-search-input:focus { border-color: #0b73df; box-shadow: 0 0 0 4px rgba(11,115,223,.10); }
+    .client-search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:1.1rem; pointer-events:none; }
+    .client-search-results {
+      display:none; position:absolute; left:0; right:0; top:calc(100% + 8px); z-index:40;
+      max-height:360px; overflow:auto; background:#fff; border:1px solid #d7e5f4;
+      border-radius:16px; box-shadow:0 16px 36px rgba(10,22,40,.16); padding:8px;
+    }
+    .client-search-results.open { display:block; }
+    .client-result-item {
+      width:100%; border:0; background:#fff; text-align:left; padding:13px 14px;
+      border-radius:12px; cursor:pointer; display:grid; gap:4px;
+    }
+    .client-result-item:hover, .client-result-item:focus { background:#edf6ff; outline:none; }
+    .client-result-name { font-weight:900; color:#0a1628; font-size:.98rem; }
+    .client-result-meta { color:#60758d; font-size:.84rem; line-height:1.35; overflow-wrap:anywhere; }
+    .client-result-empty { padding:18px; text-align:center; color:#60758d; font-weight:700; }
+    .client-search-help { margin-top:8px; color:#6d8095; font-size:.82rem; }
+
+
     .pdfInvoiceHost { position: fixed; left: -20000px; top: 0; width: 794px; background: #fff; z-index: -1; }
     .pdfInvoice {
       width: 794px; height: 1118px; min-height: 0; box-sizing: border-box; background: #ffffff;
@@ -218,9 +243,16 @@
         <h3>👤 Client de la facture</h3>
         <p>Choisissez une soumission existante pour récupérer automatiquement les coordonnées, ou laissez « Saisie manuelle » pour entrer un nouveau client.</p>
         <div class="client-source-row">
-          <label class="adminForm" style="display:grid;gap:6px">
-            <span style="font-weight:800;color:#40566e;font-size:.9rem">Récupérer depuis les soumissions</span>
-            <select id="factClientSource">
+          <label class="adminForm" style="display:grid;gap:6px;min-width:0">
+            <span style="font-weight:800;color:#40566e;font-size:.9rem">Rechercher un client ou une soumission</span>
+            <div class="client-search-wrap">
+              <span class="client-search-icon">🔎</span>
+              <input id="factClientSearch" class="client-search-input" type="search" autocomplete="off"
+                     placeholder="Nom, téléphone, courriel, adresse ou service…">
+              <div id="factClientResults" class="client-search-results" role="listbox"></div>
+            </div>
+            <div class="client-search-help">La recherche filtre instantanément même avec plusieurs milliers de clients.</div>
+            <select id="factClientSource" style="display:none" aria-hidden="true">
               <option value="">✍️ Saisie manuelle / nouveau client</option>
             </select>
           </label>
@@ -520,13 +552,72 @@
         document.getElementById(id).value = "";
       });
       document.getElementById("clientExistantZone").innerHTML = "";
+      if (clientSearchInput) clientSearchInput.value = "";
+      if (clientResults) clientResults.classList.remove("open");
       document.getElementById("factClientNom").focus();
     }
 
-    document.getElementById("factClientSource").addEventListener("change", (event) => {
-      const selected = allSubmissions.find(s => s.id === event.target.value);
-      if (selected) fillClientFromSubmission(selected);
+    const clientSearchInput = document.getElementById("factClientSearch");
+    const clientResults = document.getElementById("factClientResults");
+
+    function normalized(value) {
+      return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+
+    function searchableText(sub) {
+      return normalized([
+        submissionValue(sub, ["nom", "name", "clientNom"]),
+        submissionValue(sub, ["email", "courriel", "clientEmail"]),
+        submissionValue(sub, ["telephone", "phone", "clientPhone"]),
+        submissionValue(sub, ["depart", "adresseDepart", "address", "adresse", "clientAdresse"]),
+        submissionValue(sub, ["destination", "arrivee", "adresseArrivee"]),
+        submissionValue(sub, ["service", "typeService"])
+      ].join(" "));
+    }
+
+    function renderClientResults(query = "") {
+      const q = normalized(query);
+      const matches = allSubmissions
+        .filter(sub => !q || searchableText(sub).includes(q))
+        .slice(0, 30);
+
+      if (!matches.length) {
+        clientResults.innerHTML = '<div class="client-result-empty">Aucun client trouvé. Utilisez la saisie manuelle.</div>';
+      } else {
+        clientResults.innerHTML = matches.map(sub => {
+          const nom = submissionValue(sub, ["nom", "name", "clientNom"], "Client sans nom");
+          const email = submissionValue(sub, ["email", "courriel", "clientEmail"]);
+          const phone = submissionValue(sub, ["telephone", "phone", "clientPhone"]);
+          const service = submissionValue(sub, ["service", "typeService"]);
+          const depart = submissionValue(sub, ["depart", "adresseDepart", "address", "adresse"]);
+          const meta1 = [phone, email].filter(Boolean).join(" • ");
+          const meta2 = [service, depart].filter(Boolean).join(" — ");
+          return `<button type="button" class="client-result-item" data-id="${esc(sub.id)}" role="option">
+            <span class="client-result-name">${esc(nom)}</span>
+            ${meta1 ? `<span class="client-result-meta">${esc(meta1)}</span>` : ""}
+            ${meta2 ? `<span class="client-result-meta">${esc(meta2)}</span>` : ""}
+          </button>`;
+        }).join("");
+      }
+      clientResults.classList.add("open");
+    }
+
+    clientSearchInput.addEventListener("focus", () => renderClientResults(clientSearchInput.value));
+    clientSearchInput.addEventListener("input", () => renderClientResults(clientSearchInput.value));
+    clientResults.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-id]");
+      if (!button) return;
+      const selected = allSubmissions.find(s => s.id === button.dataset.id);
+      if (!selected) return;
+      fillClientFromSubmission(selected);
+      clientSearchInput.value = submissionValue(selected, ["nom", "name", "clientNom"], "Client sélectionné");
+      document.getElementById("factClientSource").value = selected.id;
+      clientResults.classList.remove("open");
     });
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".client-search-wrap")) clientResults.classList.remove("open");
+    });
+
     document.getElementById("btnClientManuel").addEventListener("click", resetClientManual);
 
     async function loadClients() {
@@ -559,6 +650,7 @@
         const select = document.getElementById("factClientSource");
         select.innerHTML = '<option value="">✍️ Saisie manuelle / nouveau client</option>' +
           allSubmissions.map(sub => `<option value="${esc(sub.id)}">${esc(formatSubmissionLabel(sub))}</option>`).join("");
+        if (clientSearchInput && document.activeElement === clientSearchInput) renderClientResults(clientSearchInput.value);
       } catch(e) {
         console.warn("Impossible de charger les soumissions", e);
         document.getElementById("factClientSource").innerHTML = '<option value="">✍️ Saisie manuelle / nouveau client</option>';
