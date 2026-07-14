@@ -124,6 +124,9 @@
     .pdfTotals .row { display:flex; justify-content:space-between; padding:7px 0; font-size:12px; border-bottom:1px solid #e7edf4; }
     .pdfTotals .grand { display:flex; justify-content:space-between; margin-top:8px; padding:13px 14px; background:#0b3d91; color:#fff; border-radius:10px; font-size:17px; font-weight:900; }
     .pdfNote { margin-top:24px; padding:16px; border-left:4px solid #0b67d1; background:#f4f8fd; font-size:12px; line-height:1.55; }
+    .pdfSignature { margin:28px 0 0 auto; width:290px; text-align:center; font-size:11px; color:#60758d; }
+    .pdfSignature img { display:block; max-width:240px; max-height:95px; margin:8px auto 5px; object-fit:contain; }
+    .pdfSignature strong { color:#10233f; }
     .pdfFooter { margin-top:34px; padding-top:18px; border-top:1px solid #dce7f3; text-align:center; font-size:11px; line-height:1.55; color:#60758d; }
 
     /* ===== CORRECTIONS FACTURATION MOBILE ===== */
@@ -174,6 +177,7 @@
     </div>
     <div class="adminActionsClean">
       <a href="admin.html" class="smallBtn">← Admin</a>
+      <a href="parametres.html" class="smallBtn" style="background:#173f73;color:white">⚙️ Paramètres</a>
       <button id="logoutBtn" class="smallBtn danger">Déco</button>
     </div>
   </header>
@@ -312,6 +316,30 @@
     let allFactures = [], allClients = [];
     let lignes = [];
     let factureEnCours = null;
+    const SETTINGS_DOC = doc(db, "parametres", "entreprise");
+    let companySettings = {
+      companyName: "MOVENTRA TRANSPORT ET DÉMÉNAGEMENT",
+      legalName: "9565-1147 Québec inc.",
+      neq: "1182032350",
+      tpsNumber: "772945770RT0001",
+      tvqNumber: "1233721499TQ0001",
+      phone: "438-229-9722",
+      email: "info@moventratransport.ca",
+      website: "",
+      address: "",
+      paymentTerms: "Paiement par virement Interac, chèque ou comptant.",
+      thankYou: "Merci d’avoir choisi Moventra Transport.",
+      signatureData: ""
+    };
+
+    async function loadCompanySettings() {
+      try {
+        const snap = await getDoc(SETTINGS_DOC);
+        if (snap.exists()) companySettings = { ...companySettings, ...snap.data() };
+      } catch (e) {
+        console.warn("Paramètres entreprise non chargés", e);
+      }
+    }
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { location.replace("login.html"); return; }
@@ -323,6 +351,7 @@
       }
       document.getElementById("logoutBtn").onclick = async () => { await signOut(auth); location.replace("login.html"); };
       initDateFields();
+      await loadCompanySettings();
       if (!document.querySelector("#lignesFacture .invoice-line")) addLigneFacture();
       await loadFactures();
       await loadClients();
@@ -530,10 +559,11 @@
             <div class="total"><span>TOTAL</span><span>${f.total}$</span></div>
           </div>
           ${f.note ? `<p style="margin-top:24px;color:#60758d;font-size:.9rem;line-height:1.6">${esc(f.note)}</p>` : ""}
+          ${companySettings.signatureData ? `<div style="margin-top:28px;text-align:right"><div style="font-size:.78rem;color:#60758d;margin-bottom:6px">Signature de l’entreprise</div><img src="${companySettings.signatureData}" alt="Signature" style="max-width:220px;max-height:90px;display:inline-block"><div style="font-weight:800;color:#0a1628">${esc(companySettings.companyName)}</div></div>` : ""}
           <div class="factureFooter">
-            Merci de votre confiance — Moventra Transport<br>
-            Paiement par virement Interac, chèque ou comptant.<br>
-            <strong>info@moventratransport.ca • 438-229-9722</strong>
+            ${esc(companySettings.thankYou)}<br>
+            ${esc(companySettings.paymentTerms)}<br>
+            <strong>${esc(companySettings.email)} • ${esc(companySettings.phone)}</strong>
           </div>
         </div>`;
     }
@@ -563,10 +593,12 @@
             <div class="pdfBrand">
               <img src="logo.jpeg" alt="Moventra Transport">
               <div>
-                <h2>Moventra Transport</h2>
-                <p>Déménagement résidentiel et commercial</p>
-                <p>Montréal • Rive-Sud • Rive-Nord</p>
-                <p>438-229-9722 • info@moventratransport.ca</p>
+                <h2>${esc(companySettings.companyName)}</h2>
+                <p>${esc(companySettings.legalName)}</p>
+                <p>NEQ : ${esc(companySettings.neq)}</p>
+                <p>TPS : ${esc(companySettings.tpsNumber)} • TVQ : ${esc(companySettings.tvqNumber)}</p>
+                ${companySettings.address ? `<p>${esc(companySettings.address)}</p>` : ""}
+                <p>${esc(companySettings.phone)} • ${esc(companySettings.email)}</p>
               </div>
             </div>
             <div class="pdfMeta">
@@ -580,9 +612,13 @@
           <div class="pdfClientGrid">
             <div class="pdfBox">
               <h4>Facturé par</h4>
-              <p><strong>Moventra Transport</strong></p>
-              <p>438-229-9722</p>
-              <p>info@moventratransport.ca</p>
+              <p><strong>${esc(companySettings.companyName)}</strong></p>
+              <p>${esc(companySettings.legalName)}</p>
+              <p>NEQ : ${esc(companySettings.neq)}</p>
+              <p>TPS : ${esc(companySettings.tpsNumber)}</p>
+              <p>TVQ : ${esc(companySettings.tvqNumber)}</p>
+              <p>${esc(companySettings.phone)}</p>
+              <p>${esc(companySettings.email)}</p>
             </div>
             <div class="pdfBox">
               <h4>Facturé à</h4>
@@ -609,10 +645,11 @@
 
           ${f.note ? `<div class="pdfNote"><strong>Note :</strong><br>${esc(f.note)}</div>` : ""}
 
+          ${companySettings.signatureData ? `<div class="pdfSignature"><div>Signature de l’entreprise</div><img src="${companySettings.signatureData}" alt="Signature"><strong>${esc(companySettings.companyName)}</strong></div>` : ""}
           <div class="pdfFooter">
-            Merci de votre confiance.<br>
-            Paiement par virement Interac, chèque ou comptant.<br>
-            <strong>Moventra Transport • 438-229-9722 • info@moventratransport.ca</strong>
+            ${esc(companySettings.thankYou)}<br>
+            ${esc(companySettings.paymentTerms)}<br>
+            <strong>${esc(companySettings.companyName)} • ${esc(companySettings.phone)} • ${esc(companySettings.email)}</strong>
           </div>
         </div>`;
       document.body.appendChild(host);
@@ -656,10 +693,10 @@ Veuillez trouver ci-joint votre facture ${f.numero || ""} d’un montant total d
 Date de la facture : ${f.date || ""}
 Date d’échéance : ${f.echeance || ""}
 
-Pour toute question, vous pouvez nous joindre au 438-229-9722 ou à info@moventratransport.ca.
+Pour toute question, vous pouvez nous joindre au ${companySettings.phone} ou à ${companySettings.email}.
 
-Merci de votre confiance,
-Moventra Transport`;
+${companySettings.thankYou}
+${companySettings.companyName}`;
     }
 
     async function ensureFacture(statut = "brouillon") {
@@ -711,7 +748,9 @@ Moventra Transport`;
 
         // Repli ordinateur / navigateur sans partage de fichiers : téléchargement + ouverture Gmail.
         downloadBlob(blob, `${f.numero}.pdf`);
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(message + "\n\nLe PDF a été téléchargé sur votre appareil. Joignez-le à ce message avant l’envoi.")}`;
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(message + "
+
+Le PDF a été téléchargé sur votre appareil. Joignez-le à ce message avant l’envoi.")}`;
         window.open(gmailUrl, "_blank");
         st.textContent = "✅ Gmail ouvert. Joignez le PDF téléchargé, puis envoyez.";
         st.style.color = "#078b45";
