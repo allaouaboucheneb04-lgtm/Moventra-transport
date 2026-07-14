@@ -122,6 +122,15 @@
     .client-result-name { font-weight:900; color:#0a1628; font-size:.98rem; }
     .client-result-meta { color:#60758d; font-size:.84rem; line-height:1.35; overflow-wrap:anywhere; }
     .client-result-empty { padding:18px; text-align:center; color:#60758d; font-weight:700; }
+    .client-result-count { display:inline-flex; align-items:center; gap:5px; margin-top:6px; padding:4px 9px; border-radius:999px; background:#dff1ff; color:#0870d8; font-size:.76rem; font-weight:900; width:max-content; }
+    .client-history-head { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid #dbe8f5; background:#f5faff; }
+    .client-history-back { border:0; background:#0b6fdc; color:white; border-radius:10px; padding:8px 11px; font-weight:900; cursor:pointer; }
+    .client-history-title { min-width:0; }
+    .client-history-title strong { display:block; color:#0a1628; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .client-history-title span { color:#60758d; font-size:.8rem; }
+    .client-new-invoice { border:0; width:100%; text-align:left; padding:14px 16px; background:#eaf8ef; color:#087b3d; font-weight:900; cursor:pointer; border-bottom:1px solid #d8eadf; }
+    .client-new-invoice:hover { background:#dcf3e5; }
+    .submission-date-pill { display:inline-block; margin-left:6px; padding:2px 7px; border-radius:999px; background:#eef3f8; color:#5a6d82; font-size:.72rem; font-weight:800; }
     .client-search-help { margin-top:8px; color:#6d8095; font-size:.82rem; }
 
 
@@ -241,17 +250,17 @@
 
       <div class="client-source-box">
         <h3>👤 Client de la facture</h3>
-        <p>Choisissez une soumission existante pour récupérer automatiquement les coordonnées, ou laissez « Saisie manuelle » pour entrer un nouveau client.</p>
+        <p>Recherchez d’abord le client. S’il a utilisé Moventra plusieurs fois, vous pourrez ensuite choisir la bonne soumission ou créer une nouvelle facture sans soumission.</p>
         <div class="client-source-row">
           <label class="adminForm" style="display:grid;gap:6px;min-width:0">
-            <span style="font-weight:800;color:#40566e;font-size:.9rem">Rechercher un client ou une soumission</span>
+            <span style="font-weight:800;color:#40566e;font-size:.9rem">Rechercher un client</span>
             <div class="client-search-wrap">
               <span class="client-search-icon">🔎</span>
               <input id="factClientSearch" class="client-search-input" type="search" autocomplete="off"
-                     placeholder="Nom, téléphone, courriel, adresse ou service…">
+                     placeholder="Nom, téléphone, courriel ou adresse…">
               <div id="factClientResults" class="client-search-results" role="listbox"></div>
             </div>
-            <div class="client-search-help">La recherche filtre instantanément même avec plusieurs milliers de clients.</div>
+            <div class="client-search-help">Chaque client apparaît une seule fois, avec le nombre de ses soumissions.</div>
             <select id="factClientSource" style="display:none" aria-hidden="true">
               <option value="">✍️ Saisie manuelle / nouveau client</option>
             </select>
@@ -564,47 +573,119 @@
       return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     }
 
-    function searchableText(sub) {
-      return normalized([
-        submissionValue(sub, ["nom", "name", "clientNom"]),
-        submissionValue(sub, ["email", "courriel", "clientEmail"]),
-        submissionValue(sub, ["telephone", "phone", "clientPhone"]),
-        submissionValue(sub, ["depart", "adresseDepart", "address", "adresse", "clientAdresse"]),
-        submissionValue(sub, ["destination", "arrivee", "adresseArrivee"]),
-        submissionValue(sub, ["service", "typeService"])
-      ].join(" "));
+    function clientIdentity(sub) {
+      const email = normalized(submissionValue(sub, ["email", "courriel", "clientEmail"]));
+      const phone = normalized(submissionValue(sub, ["telephone", "phone", "clientPhone"])).replace(/\D/g, "");
+      const name = normalized(submissionValue(sub, ["nom", "name", "clientNom"]));
+      if (email) return `email:${email}`;
+      if (phone) return `phone:${phone}`;
+      return `name:${name}`;
+    }
+
+    function buildClientGroups() {
+      const groups = new Map();
+      allSubmissions.forEach(sub => {
+        const key = clientIdentity(sub);
+        if (!key || key === "name:") return;
+        if (!groups.has(key)) groups.set(key, { key, submissions: [] });
+        groups.get(key).submissions.push(sub);
+      });
+      allClients = Array.from(groups.values()).map(group => {
+        group.submissions.sort((a, b) => submissionTimestamp(b) - submissionTimestamp(a));
+        group.latest = group.submissions[0];
+        group.nom = submissionValue(group.latest, ["nom", "name", "clientNom"], "Client sans nom");
+        group.email = submissionValue(group.latest, ["email", "courriel", "clientEmail"]);
+        group.phone = submissionValue(group.latest, ["telephone", "phone", "clientPhone"]);
+        group.address = submissionValue(group.latest, ["depart", "adresseDepart", "address", "adresse", "clientAdresse"]);
+        group.search = normalized([group.nom, group.email, group.phone, group.address].join(" "));
+        return group;
+      }).sort((a,b) => submissionTimestamp(b.latest) - submissionTimestamp(a.latest));
+    }
+
+    function submissionTimestamp(sub) {
+      const value = submissionValue(sub, ["createdAt", "dateCreation", "date"], "");
+      if (value?.toDate) return value.toDate().getTime();
+      if (value?.seconds) return value.seconds * 1000;
+      return Date.parse(value) || 0;
+    }
+
+    function displaySubmissionDate(sub) {
+      const value = submissionValue(sub, ["date", "dateSouhaitee", "createdAt", "dateCreation"], "");
+      if (value?.toDate) return value.toDate().toLocaleDateString("fr-CA");
+      if (value?.seconds) return new Date(value.seconds * 1000).toLocaleDateString("fr-CA");
+      const parsed = Date.parse(value);
+      return parsed ? new Date(parsed).toLocaleDateString("fr-CA") : "Date non indiquée";
     }
 
     function renderClientResults(query = "") {
       const q = normalized(query);
-      const matches = allSubmissions
-        .filter(sub => !q || searchableText(sub).includes(q))
-        .slice(0, 30);
-
+      const matches = allClients.filter(client => !q || client.search.includes(q)).slice(0, 30);
       if (!matches.length) {
         clientResults.innerHTML = '<div class="client-result-empty">Aucun client trouvé. Utilisez la saisie manuelle.</div>';
       } else {
-        clientResults.innerHTML = matches.map(sub => {
-          const nom = submissionValue(sub, ["nom", "name", "clientNom"], "Client sans nom");
-          const email = submissionValue(sub, ["email", "courriel", "clientEmail"]);
-          const phone = submissionValue(sub, ["telephone", "phone", "clientPhone"]);
-          const service = submissionValue(sub, ["service", "typeService"]);
-          const depart = submissionValue(sub, ["depart", "adresseDepart", "address", "adresse"]);
-          const meta1 = [phone, email].filter(Boolean).join(" • ");
-          const meta2 = [service, depart].filter(Boolean).join(" — ");
-          return `<button type="button" class="client-result-item" data-id="${esc(sub.id)}" role="option">
-            <span class="client-result-name">${esc(nom)}</span>
-            ${meta1 ? `<span class="client-result-meta">${esc(meta1)}</span>` : ""}
-            ${meta2 ? `<span class="client-result-meta">${esc(meta2)}</span>` : ""}
+        clientResults.innerHTML = matches.map(client => {
+          const meta = [client.phone, client.email].filter(Boolean).join(" • ");
+          return `<button type="button" class="client-result-item" data-client-key="${esc(client.key)}" role="option">
+            <span class="client-result-name">${esc(client.nom)}</span>
+            ${meta ? `<span class="client-result-meta">${esc(meta)}</span>` : ""}
+            ${client.address ? `<span class="client-result-meta">📍 ${esc(client.address)}</span>` : ""}
+            <span class="client-result-count">📄 ${client.submissions.length} soumission${client.submissions.length > 1 ? "s" : ""}</span>
           </button>`;
         }).join("");
       }
       clientResults.classList.add("open");
     }
 
+    function renderClientHistory(client) {
+      clientResults.innerHTML = `<div class="client-history-head">
+          <button type="button" class="client-history-back" data-back-clients>←</button>
+          <div class="client-history-title"><strong>${esc(client.nom)}</strong><span>${client.submissions.length} soumission${client.submissions.length > 1 ? "s" : ""}</span></div>
+        </div>
+        <button type="button" class="client-new-invoice" data-new-client-invoice="${esc(client.key)}">➕ Nouvelle facture sans soumission</button>
+        ${client.submissions.map(sub => {
+          const service = submissionValue(sub, ["service", "typeService"], "Service non indiqué");
+          const depart = submissionValue(sub, ["depart", "adresseDepart", "address", "adresse"]);
+          const destination = submissionValue(sub, ["destination", "arrivee", "adresseArrivee"]);
+          return `<button type="button" class="client-result-item" data-id="${esc(sub.id)}" role="option">
+            <span class="client-result-name">${esc(service)} <span class="submission-date-pill">${esc(displaySubmissionDate(sub))}</span></span>
+            ${(depart || destination) ? `<span class="client-result-meta">${esc([depart, destination].filter(Boolean).join(" → "))}</span>` : ""}
+          </button>`;
+        }).join("")}`;
+      clientResults.classList.add("open");
+    }
+
+    function fillClientContact(client) {
+      const sub = client.latest;
+      document.getElementById("factClientNom").value = client.nom || "";
+      document.getElementById("factClientEmail").value = client.email || "";
+      document.getElementById("factClientPhone").value = client.phone || "";
+      document.getElementById("factClientAdresse").value = client.address || "";
+      document.getElementById("factClientSource").value = "";
+      clientSearchInput.value = client.nom || "Client sélectionné";
+      clientResults.classList.remove("open");
+      checkClientExistant(client.nom || "");
+    }
+
     clientSearchInput.addEventListener("focus", () => renderClientResults(clientSearchInput.value));
     clientSearchInput.addEventListener("input", () => renderClientResults(clientSearchInput.value));
     clientResults.addEventListener("click", (event) => {
+      const back = event.target.closest("[data-back-clients]");
+      if (back) return renderClientResults(clientSearchInput.value);
+
+      const clientButton = event.target.closest("[data-client-key]");
+      if (clientButton) {
+        const client = allClients.find(c => c.key === clientButton.dataset.clientKey);
+        if (client) renderClientHistory(client);
+        return;
+      }
+
+      const newInvoice = event.target.closest("[data-new-client-invoice]");
+      if (newInvoice) {
+        const client = allClients.find(c => c.key === newInvoice.dataset.newClientInvoice);
+        if (client) fillClientContact(client);
+        return;
+      }
+
       const button = event.target.closest("[data-id]");
       if (!button) return;
       const selected = allSubmissions.find(s => s.id === button.dataset.id);
@@ -623,21 +704,9 @@
     async function loadClients() {
       try {
         const snap = await getDocs(collection(db, QUOTES_COLLECTION));
-        const seen = new Set();
         allClients = [];
         allSubmissions = [];
-        snap.forEach(d => {
-          const data = { id: d.id, ...d.data() };
-          allSubmissions.push(data);
-          const name = submissionValue(data, ["name", "nom", "clientNom"]);
-          const email = submissionValue(data, ["email", "courriel", "clientEmail"]);
-          const phone = submissionValue(data, ["phone", "telephone", "clientPhone"]);
-          const key = `${String(name).toLowerCase()}|${String(email).toLowerCase()}|${String(phone)}`;
-          if ((name || email || phone) && !seen.has(key)) {
-            seen.add(key);
-            allClients.push(data);
-          }
-        });
+        snap.forEach(d => allSubmissions.push({ id: d.id, ...d.data() }));
 
         allSubmissions.sort((a, b) => {
           const da = submissionValue(a, ["createdAt", "dateCreation"], "");
@@ -646,6 +715,8 @@
           const tb = dbv?.toDate ? dbv.toDate().getTime() : Date.parse(dbv) || 0;
           return tb - ta;
         });
+
+        buildClientGroups();
 
         const select = document.getElementById("factClientSource");
         select.innerHTML = '<option value="">✍️ Saisie manuelle / nouveau client</option>' +
