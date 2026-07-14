@@ -19,7 +19,7 @@
   <title>Administration | Moventra Transport</title>
   <link rel="icon" href="logo.jpeg">
   <link rel="stylesheet" href="style.css?v=adminfix-20260713-1">
-  <link rel="stylesheet" href="admin.css?v=dashboard-v1">
+  <link rel="stylesheet" href="admin.css?v=dashboard-v2">
   <link rel="manifest" href="admin-manifest.json">
   <link rel="apple-touch-icon" href="logo.jpeg">
   <meta name="theme-color" content="#006bd6">
@@ -99,7 +99,7 @@
       <article class="dashboardPanel dashboardQuickPanel">
         <div class="dashboardPanelHead"><div><span class="adminBadge">Accès rapide</span><h2>Que voulez-vous faire?</h2></div></div>
         <div class="dashboardQuickActions">
-          <a href="#soumissions"><span>📋</span><b>Voir les soumissions</b><small>Consulter et traiter les nouvelles demandes</small></a>
+          <a href="historique.html"><span>📋</span><b>Voir les soumissions</b><small>Consulter et traiter les nouvelles demandes</small></a>
           <a href="clients.html"><span>👥</span><b>Rechercher un client</b><small>Historique, coordonnées et factures</small></a>
           <a href="facturation.html"><span>🧾</span><b>Créer une facture</b><small>Facture PDF et partage Gmail</small></a>
           <a href="dispatch.html"><span>👷</span><b>Planifier une mission</b><small>Assigner un employé et suivre le travail</small></a>
@@ -129,6 +129,7 @@
       </article>
     </section>
 
+    <div id="legacyDashboardCompatibility" aria-hidden="true" style="display:none !important;">
     <section class="adminStats legacyStats">
       <div><strong id="countQuotes">0</strong><span>Soumissions totales</span></div>
       <div><strong id="countTasks">0</strong><span>Travaux actifs</span></div>
@@ -236,6 +237,8 @@
       </div>
       <div id="tasksList" class="cardsList"></div>
     </section>
+    </div>
+
   <p id="notificationStatus" class="notificationStatus"></p>
 
 <div class="installHint">
@@ -268,7 +271,7 @@
   });
 })();
 </script>
-  <script type="module" src="admin-v3.js?v=dashboard-v1"></script>
+  <script type="module" src="admin-v3.js?v=dashboard-v2"></script>
 <script src="pwa.js?v=20260713-0055"></script>
 <script src="push.js?v=onesignal-moventra-20260713-2" defer></script>
 
