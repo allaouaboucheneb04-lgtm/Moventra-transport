@@ -528,30 +528,30 @@
 
     function fillClientFromSubmission(submission) {
       if (!submission) return;
-      document.getElementById("factClientNom").value = submissionValue(submission, ["nom", "name", "clientNom"]);
-      document.getElementById("factClientEmail").value = submissionValue(submission, ["email", "courriel", "clientEmail"]);
-      document.getElementById("factClientPhone").value = submissionValue(submission, ["telephone", "phone", "clientPhone"]);
-      document.getElementById("factClientAdresse").value = submissionValue(submission, ["depart", "adresseDepart", "address", "adresse", "clientAdresse"]);
+      const get=(...keys)=>submissionValue(submission,keys);
+      document.getElementById("factClientNom").value = get("nom","name","clientNom");
+      document.getElementById("factClientEmail").value = get("email","courriel","clientEmail");
+      document.getElementById("factClientPhone").value = get("telephone","phone","clientPhone");
+      document.getElementById("factClientAdresse").value = get("depart","adresseDepart","address","adresse","clientAdresse");
 
-      const service = submissionValue(submission, ["service", "typeService"]);
-      const date = submissionValue(submission, ["date", "dateSouhaitee", "dateDemandee"]);
-      if (date) document.getElementById("factDate").value = date;
+      const service = get("service","typeService");
+      let firstLine = document.querySelector("#lignesFacture .invoice-line");
+      if (!firstLine && typeof ajouterLigne === 'function') { ajouterLigne(); firstLine=document.querySelector("#lignesFacture .invoice-line"); }
+      if (service && firstLine) firstLine.querySelector(".ligne-desc").value = service;
 
-      const firstLine = document.querySelector("#lignesFacture .invoice-line");
-      if (service && firstLine && !firstLine.querySelector(".ligne-desc").value.trim()) {
-        firstLine.querySelector(".ligne-desc").value = service;
-      }
-
-      const destination = submissionValue(submission, ["destination", "arrivee", "adresseArrivee"]);
-      const typeLogement = submissionValue(submission, ["typeLogement", "logement"]);
-      const details = submissionValue(submission, ["details", "description", "message"]);
-      const extra = [
-        destination ? `Destination : ${destination}` : "",
-        typeLogement ? `Type : ${typeLogement}` : "",
-        details ? `Détails : ${details}` : ""
-      ].filter(Boolean).join("\n");
-      if (extra && !document.getElementById("factNote").value.trim()) document.getElementById("factNote").value = extra;
-
+      const detailLines = [
+        ['Date du service',get('date','dateSouhaitee','dateDemandee','dateDemenagement')],
+        ['Adresse de départ',get('depart','adresseDepart','address','adresse')],
+        ['Adresse d’arrivée',get('destination','arrivee','adresseArrivee')],
+        ['Type de logement',get('typeLogement','logement')],
+        ['Étage au départ',get('etageDepart','etage_depart')],
+        ['Étage à l’arrivée',get('etageArrivee','etage_arrivee')],
+        ['Estimation',get('estimation','prixEstime','montantEstime')],
+        ['Détails',get('details','description','message')],
+        ['Nº de soumission',get('submissionId','numeroSoumission')||submission.id]
+      ].filter(([,v])=>v!==''&&v!==undefined&&v!==null);
+      document.getElementById("factNote").value = detailLines.map(([k,v])=>`${k} : ${v}`).join("\n");
+      document.getElementById("factClientSource").value = submission.id || '';
       checkClientExistant(document.getElementById("factClientNom").value);
       calcTotaux();
     }
@@ -719,9 +719,23 @@
 
         buildClientGroups();
 
+        const params = new URLSearchParams(window.location.search);
+        const requestedSubmissionId = params.get('soumission');
+        const requestedClientKey = params.get('client');
+
         const select = document.getElementById("factClientSource");
         select.innerHTML = '<option value="">✍️ Saisie manuelle / nouveau client</option>' +
           allSubmissions.map(sub => `<option value="${esc(sub.id)}">${esc(formatSubmissionLabel(sub))}</option>`).join("");
+        if (requestedSubmissionId) {
+          const selected = allSubmissions.find(s => String(s.id) === String(requestedSubmissionId) || String(submissionValue(s,['submissionId','numeroSoumission'])) === String(requestedSubmissionId));
+          if (selected) {
+            fillClientFromSubmission(selected);
+            clientSearchInput.value = submissionValue(selected,["nom","name","clientNom"],"Client sélectionné");
+          }
+        } else if (requestedClientKey) {
+          const client = allClients.find(c => c.key === requestedClientKey);
+          if (client) fillClientContact(client);
+        }
         if (clientSearchInput && document.activeElement === clientSearchInput) renderClientResults(clientSearchInput.value);
       } catch(e) {
         console.warn("Impossible de charger les soumissions", e);
