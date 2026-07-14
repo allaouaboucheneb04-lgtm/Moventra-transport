@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getFirestore, collection, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBeDOLjFyONjv06dUc4b_R0lQ4AlSBPU2U",
@@ -156,6 +156,8 @@ form?.addEventListener("submit", async (event) => {
     };
 
     const docRef = await addDoc(collection(db, "demandes_soumission"), submission);
+    const estimationNumber = `EST-${new Date().getFullYear()}-${docRef.id.slice(0, 6).toUpperCase()}`;
+    await updateDoc(docRef, { estimationNumber });
     const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
     if (window.emailjs) {
       secondaryTasks.push(emailjs.send("service_o6bm6tl", "template_c0smolo", {
@@ -170,7 +172,7 @@ form?.addEventListener("submit", async (event) => {
         etageDepart: data.startFloor || "",
         etageArrivee: data.endFloor || "",
         details: `${data.message || ""}\n\nInventaire estimé : ${estimate.volumeM3} m³ · ${estimate.truck} · ${estimate.crew} déménageurs · ${estimate.duration}`,
-        submissionId: docRef.id
+        submissionId: estimationNumber
       }));
     }
 
@@ -181,11 +183,30 @@ form?.addEventListener("submit", async (event) => {
       }
     });
 
-    statusEl.textContent = "✅ Demande envoyée avec succès. Moventra vous contactera rapidement.";
-    statusEl.style.color = "#078b45";
-    form.reset();
-    inventoryRows.forEach(row=>{const i=row.querySelector('input[type="hidden"]'),o=row.querySelector('output');i.value=0;o.value=0;o.textContent='0'});
-    refreshInventoryEstimate();
+    const confirmationData = {
+      estimationNumber,
+      createdAt: new Date().toISOString(),
+      name: data.name || "",
+      phone: data.phone || "",
+      email: data.email || "",
+      service: data.service || "",
+      date: data.date || "",
+      address: data.address || "",
+      destination: data.destination || "",
+      propertyType: data.propertyType || "",
+      startFloor: data.startFloor || "",
+      endFloor: data.endFloor || "",
+      startElevator: data.startElevator || "",
+      endElevator: data.endElevator || "",
+      rooms: data.rooms || "",
+      doorDistance: data.doorDistance || "",
+      inventoryOther: data.inventoryOther || "",
+      message: data.message || "",
+      inventory: Object.values(inventory).filter(item => Number(item.qty) > 0),
+      estimate
+    };
+    sessionStorage.setItem("moventraLastSubmission", JSON.stringify(confirmationData));
+    window.location.href = `confirmation.html?numero=${encodeURIComponent(estimationNumber)}`;
   } catch (error) {
     console.error(error);
     statusEl.textContent = "❌ La demande n’a pas pu être enregistrée. Réessayez ou appelez Moventra.";
