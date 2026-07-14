@@ -214,6 +214,21 @@
         <div><span class="adminBadge">Nouvelle</span><h2>Créer une facture</h2></div>
       </div>
 
+      <div class="client-source-box">
+        <h3>👤 Client de la facture</h3>
+        <p>Choisissez une soumission existante pour récupérer automatiquement les coordonnées, ou laissez « Saisie manuelle » pour entrer un nouveau client.</p>
+        <div class="client-source-row">
+          <label class="adminForm" style="display:grid;gap:6px">
+            <span style="font-weight:800;color:#40566e;font-size:.9rem">Récupérer depuis les soumissions</span>
+            <select id="factClientSource">
+              <option value="">✍️ Saisie manuelle / nouveau client</option>
+            </select>
+          </label>
+          <button type="button" class="smallBtn" id="btnClientManuel">Effacer et saisir manuellement</button>
+        </div>
+        <div class="manual-client-note">Les champs ci-dessous restent modifiables même après avoir choisi une soumission.</div>
+      </div>
+
       <div id="clientExistantZone" style="margin-bottom:16px"></div>
 
       <div class="invoice-client-grid">
@@ -321,7 +336,7 @@
     const db = getFirestore(app);
     const FACTURES_COLLECTION = "factures";
     let currentUser = null;
-    let allFactures = [], allClients = [];
+    let allFactures = [], allClients = [], allSubmissions = [];
     let lignes = [];
     let factureEnCours = null;
     const SETTINGS_DOC = doc(db, "parametres", "entreprise");
@@ -429,7 +444,7 @@
       document.getElementById("factClientNom").value = client.name || client.nom || "";
       document.getElementById("factClientEmail").value = client.email || "";
       document.getElementById("factClientPhone").value = client.phone || client.telephone || "";
-      document.getElementById("factClientAdresse").value = client.address || "";
+      document.getElementById("factClientAdresse").value = client.depart || client.adresseDepart || client.address || client.adresse || "";
 
       // Historique factures de ce client
       const factsClient = allFactures.filter(f =>
@@ -454,20 +469,100 @@
       zone.innerHTML = historiqueHtml;
     };
 
+    function submissionValue(data, keys, fallback = "") {
+      for (const key of keys) {
+        const value = data?.[key];
+        if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+      }
+      return fallback;
+    }
+
+    function formatSubmissionLabel(submission) {
+      const nom = submissionValue(submission, ["nom", "name", "clientNom"], "Client sans nom");
+      const service = submissionValue(submission, ["service", "typeService"], "Service non précisé");
+      const date = submissionValue(submission, ["date", "dateSouhaitee", "dateDemandee"], "");
+      return `${nom} — ${service}${date ? " — " + date : ""}`;
+    }
+
+    function fillClientFromSubmission(submission) {
+      if (!submission) return;
+      document.getElementById("factClientNom").value = submissionValue(submission, ["nom", "name", "clientNom"]);
+      document.getElementById("factClientEmail").value = submissionValue(submission, ["email", "courriel", "clientEmail"]);
+      document.getElementById("factClientPhone").value = submissionValue(submission, ["telephone", "phone", "clientPhone"]);
+      document.getElementById("factClientAdresse").value = submissionValue(submission, ["depart", "adresseDepart", "address", "adresse", "clientAdresse"]);
+
+      const service = submissionValue(submission, ["service", "typeService"]);
+      const date = submissionValue(submission, ["date", "dateSouhaitee", "dateDemandee"]);
+      if (date) document.getElementById("factDate").value = date;
+
+      const firstLine = document.querySelector("#lignesFacture .invoice-line");
+      if (service && firstLine && !firstLine.querySelector(".ligne-desc").value.trim()) {
+        firstLine.querySelector(".ligne-desc").value = service;
+      }
+
+      const destination = submissionValue(submission, ["destination", "arrivee", "adresseArrivee"]);
+      const typeLogement = submissionValue(submission, ["typeLogement", "logement"]);
+      const details = submissionValue(submission, ["details", "description", "message"]);
+      const extra = [
+        destination ? `Destination : ${destination}` : "",
+        typeLogement ? `Type : ${typeLogement}` : "",
+        details ? `Détails : ${details}` : ""
+      ].filter(Boolean).join("\n");
+      if (extra && !document.getElementById("factNote").value.trim()) document.getElementById("factNote").value = extra;
+
+      checkClientExistant(document.getElementById("factClientNom").value);
+      calcTotaux();
+    }
+
+    function resetClientManual() {
+      document.getElementById("factClientSource").value = "";
+      ["factClientNom", "factClientEmail", "factClientPhone", "factClientAdresse"].forEach(id => {
+        document.getElementById(id).value = "";
+      });
+      document.getElementById("clientExistantZone").innerHTML = "";
+      document.getElementById("factClientNom").focus();
+    }
+
+    document.getElementById("factClientSource").addEventListener("change", (event) => {
+      const selected = allSubmissions.find(s => s.id === event.target.value);
+      if (selected) fillClientFromSubmission(selected);
+    });
+    document.getElementById("btnClientManuel").addEventListener("click", resetClientManual);
+
     async function loadClients() {
       try {
         const snap = await getDocs(collection(db, QUOTES_COLLECTION));
         const seen = new Set();
         allClients = [];
+        allSubmissions = [];
         snap.forEach(d => {
-          const data = d.data();
-          const key = (data.name || data.nom || "").toLowerCase();
-          if (key && !seen.has(key)) {
+          const data = { id: d.id, ...d.data() };
+          allSubmissions.push(data);
+          const name = submissionValue(data, ["name", "nom", "clientNom"]);
+          const email = submissionValue(data, ["email", "courriel", "clientEmail"]);
+          const phone = submissionValue(data, ["phone", "telephone", "clientPhone"]);
+          const key = `${String(name).toLowerCase()}|${String(email).toLowerCase()}|${String(phone)}`;
+          if ((name || email || phone) && !seen.has(key)) {
             seen.add(key);
-            allClients.push({ id: d.id, ...data });
+            allClients.push(data);
           }
         });
-      } catch(e) { console.warn(e); }
+
+        allSubmissions.sort((a, b) => {
+          const da = submissionValue(a, ["createdAt", "dateCreation"], "");
+          const dbv = submissionValue(b, ["createdAt", "dateCreation"], "");
+          const ta = da?.toDate ? da.toDate().getTime() : Date.parse(da) || 0;
+          const tb = dbv?.toDate ? dbv.toDate().getTime() : Date.parse(dbv) || 0;
+          return tb - ta;
+        });
+
+        const select = document.getElementById("factClientSource");
+        select.innerHTML = '<option value="">✍️ Saisie manuelle / nouveau client</option>' +
+          allSubmissions.map(sub => `<option value="${esc(sub.id)}">${esc(formatSubmissionLabel(sub))}</option>`).join("");
+      } catch(e) {
+        console.warn("Impossible de charger les soumissions", e);
+        document.getElementById("factClientSource").innerHTML = '<option value="">✍️ Saisie manuelle / nouveau client</option>';
+      }
     }
 
     // ===== SAUVEGARDER =====
