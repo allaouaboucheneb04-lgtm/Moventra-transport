@@ -774,7 +774,9 @@
         services, sous: sous.toFixed(2), tps: tps.toFixed(2),
         tvq: tvq.toFixed(2), total: total.toFixed(2),
         note: document.getElementById("factNote").value.trim(),
-        statut, createdAt: serverTimestamp(), createdBy: currentUser.uid
+        sourceSubmissionId: document.getElementById("factClientSource").value || factureEnCours?.sourceSubmissionId || "",
+        soumissionId: document.getElementById("factClientSource").value || factureEnCours?.soumissionId || "",
+        statut, createdAt: factureEnCours?.createdAt || serverTimestamp(), updatedAt: serverTimestamp(), createdBy: currentUser.uid
       };
 
       if (factureEnCours?.firestoreId) {
@@ -1054,6 +1056,52 @@ ${companySettings.companyName}`;
       }
     };
 
+    function clearInvoiceLines() {
+      document.getElementById("lignesFacture").innerHTML = "";
+      ligneCount = 0;
+    }
+
+    function populateInvoiceForEditing(f) {
+      if (!f) return;
+      factureEnCours = { ...f, firestoreId: f.firestoreId || f.id };
+      document.getElementById("factClientNom").value = f.clientNom || "";
+      document.getElementById("factClientEmail").value = f.clientEmail || "";
+      document.getElementById("factClientPhone").value = f.clientPhone || "";
+      document.getElementById("factClientAdresse").value = f.clientAdresse || "";
+      document.getElementById("factDate").value = f.date || "";
+      document.getElementById("factEcheance").value = f.echeance || "";
+      document.getElementById("factNote").value = f.note || "";
+      document.getElementById("factClientSource").value = f.sourceSubmissionId || f.soumissionId || f.submissionId || "";
+      clearInvoiceLines();
+      (f.services || []).forEach(service => {
+        addLigneFacture();
+        const row = document.querySelector("#lignesFacture .invoice-line:last-child");
+        row.querySelector(".ligne-desc").value = service.desc || service.description || "";
+        row.querySelector(".ligne-qty").value = service.qty ?? service.quantite ?? 1;
+        row.querySelector(".ligne-prix").value = service.prix ?? service.price ?? 0;
+      });
+      if (!(f.services || []).length) addLigneFacture();
+      calcTotaux();
+      document.getElementById("factureStatus").textContent = `✏️ Modification de la facture ${f.numero || ""}`;
+      document.getElementById("factureStatus").style.color = "#006bd6";
+      document.getElementById("sectionNouvelleFacture").scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function executeInvoiceUrlAction() {
+      const params = new URLSearchParams(window.location.search);
+      const requestedId = params.get("facture");
+      if (!requestedId) return;
+      const f = allFactures.find(x => String(x.firestoreId || x.id) === String(requestedId) || String(x.numero || x.numeroFacture) === String(requestedId));
+      if (!f) return;
+      populateInvoiceForEditing(f);
+      const action = params.get("action");
+      if (action === "pdf") {
+        setTimeout(() => document.getElementById("btnTelechargerPDF")?.click(), 250);
+      } else if (action === "email") {
+        setTimeout(() => document.getElementById("btnEnvoyerFacture")?.click(), 250);
+      }
+    }
+
     // ===== LISTE FACTURES =====
     async function loadFactures() {
       const el = document.getElementById("listeFactures");
@@ -1073,6 +1121,10 @@ ${companySettings.companyName}`;
           return tb - ta;
         });
         renderListeFactures();
+        if (!window.__invoiceUrlActionHandled) {
+          window.__invoiceUrlActionHandled = true;
+          await executeInvoiceUrlAction();
+        }
       } catch(e) {
         console.error(e);
         el.innerHTML = `<p style="color:#d21f3c">❌ Impossible de charger les factures : ${esc(e.message || e)}</p>`;
@@ -1092,7 +1144,7 @@ ${companySettings.companyName}`;
           <p><b>Date:</b> ${esc(f.date || "")} • <b>Échéance:</b> ${esc(f.echeance || "")}</p>
           <p><b>Total:</b> <strong style="color:#006bd6">${parseFloat(f.total || 0).toFixed(2)}$</strong></p>
           <div class="assignRow" style="margin-top:12px">
-            <button class="smallBtn" onclick="voirFacture('${f.firestoreId}')">👁️ Voir</button>
+            <button class="smallBtn" onclick="voirFacture('${f.firestoreId}')">✏️ Modifier</button>
             <button class="smallBtn ok" onclick="marquerPayee('${f.firestoreId}')">✅ Marquée payée</button>
           </div>
         </article>`).join("");
@@ -1101,9 +1153,7 @@ ${companySettings.companyName}`;
     window.voirFacture = function(id) {
       const f = allFactures.find(x => x.firestoreId === id);
       if (!f) return;
-      document.getElementById("facturePreviewContent").innerHTML = genereHTMLFacture(f);
-      document.getElementById("sectionApercu").style.display = "block";
-      document.getElementById("sectionApercu").scrollIntoView({ behavior: "smooth" });
+      populateInvoiceForEditing(f);
     };
 
     window.marquerPayee = async function(id) {

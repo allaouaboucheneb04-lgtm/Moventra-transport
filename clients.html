@@ -11,7 +11,7 @@
 <style>
 .submissionHistoryItem{cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}.submissionHistoryItem.expanded{background:#f7fbff}.detailChevron{border:0;background:#e8f3ff;color:#0968d8;border-radius:12px;width:44px;height:44px;font-size:28px;font-weight:800}.submissionDetailsSlot{grid-column:1/-1}.submissionFullDetails{margin-top:14px;padding:16px;border-radius:16px;background:#fff;border:1px solid #d7e7f8;display:grid;gap:10px}.submissionFullDetails>div:not(.submissionDetailActions){display:grid;grid-template-columns:minmax(120px,38%) 1fr;gap:12px;padding-bottom:9px;border-bottom:1px solid #edf2f7}.submissionFullDetails span{color:#667b93;font-weight:700}.submissionFullDetails strong{color:#102642;overflow-wrap:anywhere}.submissionDetailActions{padding-top:8px}.submissionDetailActions a{display:block;text-align:center;text-decoration:none}@media(max-width:560px){.submissionFullDetails>div:not(.submissionDetailActions){grid-template-columns:1fr}.submissionHistoryItem{grid-template-columns:1fr auto}}
 
-.clientQuickActions{grid-template-columns:repeat(5,minmax(0,1fr))}.timelineList{display:grid;gap:12px}.timelineItem{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start;padding:14px;border:1px solid #dbe8f7;border-radius:16px;background:#fff}.timelineIcon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#edf6ff;font-size:21px}.timelineItem h4{margin:0 0 5px;color:#102642}.timelineItem p,.timelineItem small{margin:0;color:#667b93}.missionStatus{display:inline-flex;padding:5px 9px;border-radius:999px;background:#eaf7ef;color:#157b45;font-size:12px;font-weight:800}.invoiceActions,.missionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.miniAction{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px;border-radius:10px;text-decoration:none;background:#eaf3ff;color:#0868d8;font-weight:800;border:0}.miniAction.primary{background:#0868d8;color:#fff}.clientSince{margin-top:7px;color:#71849b;font-size:14px}.submissionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.clientQuickActions{grid-template-columns:repeat(5,minmax(0,1fr))}.timelineList{display:grid;gap:12px}.timelineItem{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start;padding:14px;border:1px solid #dbe8f7;border-radius:16px;background:#fff}.timelineIcon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#edf6ff;font-size:21px}.timelineItem h4{margin:0 0 5px;color:#102642}.timelineItem p,.timelineItem small{margin:0;color:#667b93}.missionStatus{display:inline-flex;padding:5px 9px;border-radius:999px;background:#eaf7ef;color:#157b45;font-size:12px;font-weight:800}.invoiceActions,.missionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.miniAction{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px;border-radius:10px;text-decoration:none;background:#eaf3ff;color:#0868d8;font-weight:800;border:0}.miniAction.primary{background:#0868d8;color:#fff}.clientSince{margin-top:7px;color:#71849b;font-size:14px}.submissionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.invoiceLinkedBadge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#e8f7ef;color:#157b45;font-size:12px;font-weight:900;margin-top:10px}.invoiceLinkedActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.invoiceLinkedActions .miniAction{flex:1;min-width:115px}.historyItemPro.invoicedSubmission{border-color:#bfe8cf;background:#fbfffc}
 @media(max-width:760px){.clientQuickActions{grid-template-columns:repeat(2,minmax(0,1fr))}.clientQuickActions .primary{grid-column:1/-1}.crmTabs{overflow-x:auto;justify-content:flex-start}.crmTab{flex:0 0 auto}.timelineItem{grid-template-columns:36px 1fr}.timelineIcon{width:36px;height:36px}}
 </style>
 </head>
@@ -153,6 +153,36 @@ function overviewHtml(c){
   const regular=c.submissions.length>1?'⭐ Client régulier':'Nouveau client';
   return `<div class="overviewGrid"><section><h3>Coordonnées</h3><dl><dt>Nom</dt><dd>${esc(c.nom||'—')}</dd><dt>Téléphone</dt><dd>${esc(c.tel||'—')}</dd><dt>Courriel</dt><dd>${esc(c.email||'—')}</dd><dt>Adresse</dt><dd>${esc(c.adresse||'—')}</dd></dl><button id="editSelected" class="secondaryAction full">✏️ Modifier la fiche</button></section><section><h3>Résumé client</h3><dl><dt>Client depuis</dt><dd>${c.first?fmt(new Date(c.first)):'—'}</dd><dt>Dernière activité</dt><dd>${c.last?fmt(new Date(c.last)):'—'}</dd><dt>Dernier service</dt><dd>${esc(lastService)}</dd><dt>Statut</dt><dd>${regular}</dd><dt>Soumissions</dt><dd>${c.submissions.length}</dd><dt>Factures</dt><dd>${c.invoices.length}</dd><dt>Total facturé</dt><dd>${money(c.total)}</dd></dl></section></div>`
 }
+function invoiceSubmissionId(inv){
+  const explicit=val(inv,'sourceSubmissionId','soumissionId','submissionId','numeroSoumission','clientSource');
+  if(explicit) return explicit;
+  const note=String(inv?.note||'');
+  const m=note.match(/(?:N[º°o]\s*de\s*soumission|N[º°o]\s*soumission|soumission)\s*:\s*([^\n\r]+)/i);
+  return m?String(m[1]).trim():'';
+}
+function invoiceForSubmission(sub){
+  if(!selected) return null;
+  const ids=[sub.id,val(sub,'submissionId','numeroSoumission')].filter(Boolean).map(String);
+  let inv=selected.invoices.find(f=>{
+    const linked=invoiceSubmissionId(f);
+    return linked&&ids.includes(String(linked));
+  });
+  if(inv) return inv;
+  // Compatibilité avec les anciennes factures : même client + service dans les lignes ou la note.
+  const service=norm(val(sub,'service','typeService'));
+  const subDate=val(sub,'date','dateSouhaitee','dateDemandee','dateDemenagement');
+  return selected.invoices.find(f=>{
+    const descriptions=(f.services||[]).map(x=>norm(x.desc||x.description)).join(' ');
+    const note=norm(f.note||'');
+    const sameService=service&&(descriptions.includes(service)||note.includes(service));
+    const sameDate=!subDate||String(f.note||'').includes(String(subDate));
+    return sameService&&sameDate;
+  })||null;
+}
+function invoiceLinkedActions(inv){
+  const id=encodeURIComponent(inv.id||inv.firestoreId||'');
+  return `<div class="invoiceLinkedBadge">✅ Déjà facturé — ${esc(val(inv,'numero','numeroFacture')||inv.id)}</div><div class="invoiceLinkedActions"><a class="miniAction primary" href="facturation.html?facture=${id}">✏️ Modifier la facture</a><a class="miniAction" href="facturation.html?facture=${id}&action=pdf">📄 Imprimer / PDF</a><a class="miniAction" href="facturation.html?facture=${id}&action=email">✉️ Envoyer par courriel</a></div>`;
+}
 function submissionDetailsHtml(o){
   const fields=[
     ['Client',val(o,'nom','name','clientNom')],
@@ -169,11 +199,17 @@ function submissionDetailsHtml(o){
     ['Détails',val(o,'details','description','message')],
     ['Nº de soumission',val(o,'submissionId','numeroSoumission')||o.id]
   ].filter(([,v])=>v!==''&&v!==undefined&&v!==null);
-  return `<div class="submissionFullDetails">${fields.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')}<div class="submissionDetailActions"><a class="primaryAction" href="facturation.html?soumission=${encodeURIComponent(o.id)}">🧾 Facturer cette soumission</a></div></div>`;
+  const inv=invoiceForSubmission(o); return `<div class="submissionFullDetails">${fields.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')}<div class="submissionDetailActions">${inv?invoiceLinkedActions(inv):`<a class="primaryAction" href="facturation.html?soumission=${encodeURIComponent(o.id)}">🧾 Facturer cette soumission</a>`}</div></div>`;
 }
 function historyHtml(rows,type){
-  if(!rows.length)return '<div class="emptyState">Aucun élément dans cet historique.</div>';
-  return [...rows].sort((a,b)=>(b._date||0)-(a._date||0)).map(o=>type==='submissions'?`<article class="historyItemPro submissionHistoryItem" data-submission-detail="${encodeURIComponent(o.id)}"><div><span class="historyDate">${fmt(val(o,'date','dateSouhaitee','dateDemenagement','createdAt'))}</span><h4>${esc(val(o,'service','typeService')||'Soumission')}</h4><p>📍 ${esc(val(o,'adresseDepart','depart')||'—')} → ${esc(val(o,'destination','adresseArrivee')||'—')}</p><small>Appuyez pour voir tous les détails</small><div class="submissionActions"><a class="miniAction primary" href="facturation.html?soumission=${encodeURIComponent(o.id)}">🧾 Facturer</a><a class="miniAction" href="dispatch.html?soumission=${encodeURIComponent(o.id)}">👷 Planifier</a></div></div><button type="button" class="detailChevron">›</button><div class="submissionDetailsSlot" hidden>${submissionDetailsHtml(o)}</div></article>`:`<article class="historyItemPro"><div><span class="historyDate">${fmt(val(o,'date','createdAt'))}</span><h4>${esc(val(o,'numero','numeroFacture')||o.id)}</h4><p>Statut : ${esc(val(o,'statut','status')||'—')}</p><div class="invoiceActions"><a class="miniAction primary" href="facturation.html?facture=${encodeURIComponent(o.id)}">👁 Voir</a><a class="miniAction" href="facturation.html?facture=${encodeURIComponent(o.id)}&action=pdf">📄 PDF</a><a class="miniAction" href="facturation.html?facture=${encodeURIComponent(o.id)}&action=email">✉️ Envoyer</a></div></div><b>${money(o.total||o.totalTTC||o.montantTotal||0)}</b></article>`).join('');
+  if(!rows.length)return `<div class="emptyState">Aucun élément dans cet historique.</div>`;
+  return [...rows].sort((a,b)=>(b._date||0)-(a._date||0)).map(o=>{
+    if(type==='submissions'){
+      const inv=invoiceForSubmission(o);
+      return `<article class="historyItemPro submissionHistoryItem ${inv?'invoicedSubmission':''}" data-submission-detail="${encodeURIComponent(o.id)}"><div><span class="historyDate">${fmt(val(o,'date','dateSouhaitee','dateDemenagement','createdAt'))}</span><h4>${esc(val(o,'service','typeService')||'Soumission')}</h4><p>📍 ${esc(val(o,'adresseDepart','depart')||'—')} → ${esc(val(o,'destination','adresseArrivee')||'—')}</p><small>Appuyez pour voir tous les détails</small>${inv?invoiceLinkedActions(inv):`<div class="submissionActions"><a class="miniAction primary" href="facturation.html?soumission=${encodeURIComponent(o.id)}">🧾 Facturer</a><a class="miniAction" href="dispatch.html?soumission=${encodeURIComponent(o.id)}">👷 Planifier</a></div>`}</div><button type="button" class="detailChevron">›</button><div class="submissionDetailsSlot" hidden>${submissionDetailsHtml(o)}</div></article>`;
+    }
+    return `<article class="historyItemPro"><div><span class="historyDate">${fmt(val(o,'date','createdAt'))}</span><h4>${esc(val(o,'numero','numeroFacture')||o.id)}</h4><p>Statut : ${esc(val(o,'statut','status')||'—')}</p><div class="invoiceActions"><a class="miniAction primary" href="facturation.html?facture=${encodeURIComponent(o.id)}">✏️ Modifier</a><a class="miniAction" href="facturation.html?facture=${encodeURIComponent(o.id)}&action=pdf">📄 PDF</a><a class="miniAction" href="facturation.html?facture=${encodeURIComponent(o.id)}&action=email">✉️ Envoyer</a></div></div><b>${money(o.total||o.totalTTC||o.montantTotal||0)}</b></article>`;
+  }).join('');
 }
 function missionsHtml(rows){
   if(!rows.length)return '<div class="emptyState">Aucune mission dispatchée pour ce client.</div>';
