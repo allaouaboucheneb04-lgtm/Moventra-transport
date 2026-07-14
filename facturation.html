@@ -756,35 +756,76 @@
     }
 
     async function sauvegarderFacture(statut = "brouillon") {
-      const services = getLignesData();
+      const services = getLignesData().map(x => ({
+        desc: x.desc || x.description || "",
+        description: x.description || x.desc || "",
+        qty: Number(x.qty || 1),
+        prix: Number(x.prix || 0),
+        total: Number(x.total || (Number(x.qty || 1) * Number(x.prix || 0)))
+      }));
       const sous = services.reduce((a, s) => a + s.total, 0);
-      const tps = sous * 0.05;
-      const tvq = sous * 0.09975;
+      const tauxTps = Number(factureEnCours?.tauxTps ?? 5);
+      const tauxTvq = Number(factureEnCours?.tauxTvq ?? 9.975);
+      const tps = sous * tauxTps / 100;
+      const tvq = sous * tauxTvq / 100;
       const total = sous + tps + tvq;
-      const num = "FACT-" + Date.now().toString().slice(-6);
+      const num = "FAC-" + new Date().getFullYear() + "-" + Date.now().toString().slice(-6);
+      const sourceId = document.getElementById("factClientSource").value || factureEnCours?.sourceSubmissionId || factureEnCours?.soumissionId || "";
+      const dossierId = factureEnCours?.dossierId || (sourceId ? `DOS-${new Date().getFullYear()}-${String(sourceId).slice(-6).toUpperCase()}` : `DOS-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`);
+      const montantPaye = Number(factureEnCours?.montantPaye || 0);
 
       const data = {
         numero: factureEnCours?.numero || num,
+        dossierId,
+        devisId: factureEnCours?.devisId || "",
         clientNom: document.getElementById("factClientNom").value.trim(),
         clientEmail: document.getElementById("factClientEmail").value.trim(),
         clientPhone: document.getElementById("factClientPhone").value.trim(),
+        clientTelephone: document.getElementById("factClientPhone").value.trim(),
         clientAdresse: document.getElementById("factClientAdresse").value.trim(),
+        adresse: document.getElementById("factClientAdresse").value.trim(),
         date: document.getElementById("factDate").value,
         echeance: document.getElementById("factEcheance").value,
-        services, sous: sous.toFixed(2), tps: tps.toFixed(2),
-        tvq: tvq.toFixed(2), total: total.toFixed(2),
+        services, lignes: services,
+        sous: sous.toFixed(2), subtotal: sous,
+        tps: tps.toFixed(2), tvq: tvq.toFixed(2), total: total.toFixed(2),
+        tauxTps, tauxTvq,
+        montantPaye,
+        solde: Math.max(0, total - montantPaye),
+        paiements: factureEnCours?.paiements || [],
         note: document.getElementById("factNote").value.trim(),
-        sourceSubmissionId: document.getElementById("factClientSource").value || factureEnCours?.sourceSubmissionId || "",
-        soumissionId: document.getElementById("factClientSource").value || factureEnCours?.soumissionId || "",
-        statut, createdAt: factureEnCours?.createdAt || serverTimestamp(), updatedAt: serverTimestamp(), createdBy: currentUser.uid
+        sourceSubmissionId: sourceId,
+        soumissionId: sourceId,
+        statut,
+        revision: Number(factureEnCours?.revision || 0),
+        parentFactureId: factureEnCours?.parentFactureId || "",
+        createdAt: factureEnCours?.createdAt || serverTimestamp(),
+        updatedAt: serverTimestamp(), createdBy: currentUser.uid
       };
 
-      if (factureEnCours?.firestoreId) {
+      const protectedStatuses = ["envoyée", "envoyee", "payée", "payee", "partiellement_payee"];
+      const mustRevise = factureEnCours?.firestoreId && protectedStatuses.includes(String(factureEnCours.statut || "").toLowerCase()) && statut === "brouillon";
+      if (mustRevise) {
+        if (!confirm("Cette facture a déjà été envoyée ou payée. Créer une nouvelle révision pour conserver l’historique ?")) return factureEnCours;
+        const rev = Number(factureEnCours.revision || 0) + 1;
+        const baseNumero = String(factureEnCours.numero || num).replace(/-R\d+$/, "");
+        const ref = await addDoc(collection(db, FACTURES_COLLECTION), {
+          ...data,
+          numero: `${baseNumero}-R${rev}`,
+          revision: rev,
+          parentFactureId: factureEnCours.parentFactureId || factureEnCours.firestoreId,
+          statut: "brouillon_revision",
+          createdAt: serverTimestamp()
+        });
+        factureEnCours = { firestoreId: ref.id, ...data, numero: `${baseNumero}-R${rev}`, revision: rev, parentFactureId: factureEnCours.parentFactureId || factureEnCours.firestoreId, statut: "brouillon_revision" };
+        await addDoc(collection(db, "historique"), { dossierId, type: "facture_revision", factureId: ref.id, parentFactureId: factureEnCours.parentFactureId, numero: factureEnCours.numero, message: "Révision de facture créée", montant: total, createdAt: serverTimestamp() });
+      } else if (factureEnCours?.firestoreId) {
         await updateDoc(doc(db, FACTURES_COLLECTION, factureEnCours.firestoreId), data);
         factureEnCours = { ...factureEnCours, ...data };
       } else {
         const ref = await addDoc(collection(db, FACTURES_COLLECTION), data);
         factureEnCours = { firestoreId: ref.id, ...data };
+        await addDoc(collection(db, "historique"), { dossierId, type: "facture_creee", factureId: ref.id, soumissionId: sourceId, devisId: data.devisId, numero: data.numero, message: "Facture créée", montant: total, createdAt: serverTimestamp() });
       }
       await loadFactures();
       return factureEnCours;
@@ -800,7 +841,7 @@
 
     // ===== APERÇU =====
     function genereHTMLFacture(f) {
-      const services = f.services || [];
+      const services = f.services || f.lignes || [];
       return `
         <div class="facturePreview">
           <div class="factureHeader">
@@ -867,7 +908,7 @@
     }
 
     function buildPDFInvoice(f) {
-      const services = f.services || [];
+      const services = f.services || f.lignes || [];
       const host = document.createElement("div");
       host.className = "pdfInvoiceHost";
       const status = String(f.statut || "brouillon").toUpperCase();
@@ -1066,21 +1107,21 @@ ${companySettings.companyName}`;
       factureEnCours = { ...f, firestoreId: f.firestoreId || f.id };
       document.getElementById("factClientNom").value = f.clientNom || "";
       document.getElementById("factClientEmail").value = f.clientEmail || "";
-      document.getElementById("factClientPhone").value = f.clientPhone || "";
-      document.getElementById("factClientAdresse").value = f.clientAdresse || "";
+      document.getElementById("factClientPhone").value = f.clientPhone || f.clientTelephone || f.telephone || "";
+      document.getElementById("factClientAdresse").value = f.clientAdresse || f.adresse || f.depart || "";
       document.getElementById("factDate").value = f.date || "";
       document.getElementById("factEcheance").value = f.echeance || "";
       document.getElementById("factNote").value = f.note || "";
       document.getElementById("factClientSource").value = f.sourceSubmissionId || f.soumissionId || f.submissionId || "";
       clearInvoiceLines();
-      (f.services || []).forEach(service => {
+      (f.services || f.lignes || []).forEach(service => {
         addLigneFacture();
         const row = document.querySelector("#lignesFacture .invoice-line:last-child");
         row.querySelector(".ligne-desc").value = service.desc || service.description || "";
         row.querySelector(".ligne-qty").value = service.qty ?? service.quantite ?? 1;
         row.querySelector(".ligne-prix").value = service.prix ?? service.price ?? 0;
       });
-      if (!(f.services || []).length) addLigneFacture();
+      if (!(f.services || f.lignes || []).length) addLigneFacture();
       calcTotaux();
       document.getElementById("factureStatus").textContent = `✏️ Modification de la facture ${f.numero || ""}`;
       document.getElementById("factureStatus").style.color = "#006bd6";
@@ -1157,7 +1198,10 @@ ${companySettings.companyName}`;
     };
 
     window.marquerPayee = async function(id) {
-      await updateDoc(doc(db, FACTURES_COLLECTION, id), { statut: "payée" });
+      const f = allFactures.find(x => x.firestoreId === id);
+      const total = Number(f?.total || 0);
+      await updateDoc(doc(db, FACTURES_COLLECTION, id), { statut: "payée", montantPaye: total, solde: 0, paidAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      if (f) await addDoc(collection(db, "historique"), { dossierId: f.dossierId || "", type: "facture_payee", factureId: id, numero: f.numero || "", message: "Facture payée", montant: total, createdAt: serverTimestamp() });
       await loadFactures();
     };
 

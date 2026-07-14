@@ -1,23 +1,16 @@
 rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function profileExists() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
-    function isAdmin() { return profileExists() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
-    function isEmployee() { return profileExists() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'employe'; }
-
-    match /users/{uid} { allow read: if signedIn() && (request.auth.uid == uid || isAdmin()); allow write: if isAdmin(); }
-    match /utilisateurs/{uid} { allow read: if signedIn() && (request.auth.uid == uid || isAdmin()); allow write: if isAdmin(); }
-    match /employes/{uid} { allow read: if signedIn(); allow write: if isAdmin(); }
-    match /demandes_soumission/{id} { allow create: if true; allow read, update, delete: if isAdmin(); }
-    match /travaux/{id} { allow read: if isAdmin() || isEmployee(); allow create, update, delete: if isAdmin(); }
-    match /factures/{id} { allow read, write: if isAdmin(); }
-    match /devis/{id} { allow read, write: if isAdmin(); }
-    match /parametres/{id} { allow read, write: if isAdmin(); }
-    match /promotions/{id} { allow read, write: if isAdmin(); }
-    match /historique/{id} { allow read, write: if isAdmin(); }
-    match /notifications/{id} { allow read, write: if signedIn(); }
-    match /clients/{id} { allow read, write: if isAdmin(); }
-    match /{document=**} { allow read, write: if false; }
-  }
-}
+service cloud.firestore { match /databases/{database}/documents {
+function signedIn(){return request.auth!=null;} function isAdmin(){return signedIn()&&exists(/databases/$(database)/documents/users/$(request.auth.uid))&&get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role=='admin';}
+match /demandes_soumission/{id}{allow create:if true;allow read,update,delete:if isAdmin();}
+match /users/{uid}{allow read:if isAdmin()||(signedIn()&&request.auth.uid==uid);allow write:if isAdmin();}
+match /devis/{id}{allow read,write:if isAdmin();}
+match /factures/{id}{allow read,write:if isAdmin();}
+match /taches/{id}{allow read,write:if isAdmin();}
+match /clients/{id}{allow read,write:if isAdmin();}
+match /parametres/{id}{allow read,write:if isAdmin();}
+match /settings/{id}{allow read:if true;allow write:if isAdmin();}
+match /notifications/{id}{allow read,write:if isAdmin();}
+match /historique/{id}{allow read,write:if isAdmin();}
+match /invites/{id}{allow read:if true;allow write:if isAdmin();}
+match /{document=**}{allow read,write:if false;}
+}}
