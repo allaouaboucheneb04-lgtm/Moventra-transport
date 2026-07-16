@@ -2,7 +2,7 @@ MOVENTRA — DESIGN RESTAURÉ
 
 Cette version reprend le design complet précédent (site public et administration), tout en conservant :
 - Firebase Moventra : moventra-fe20f
-- OneSignal Moventra : a6edf32a-9d3b-4fce-ad98-0c5ccfc43672
+- OneSignal Moventra : b7dc3eab-b127-47dd-9ad4-71295880fd34
 - Webhook Make configuré dans webhook-config.js
 - Soumissions dans la collection demandes_soumission
 

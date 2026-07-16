@@ -4,8 +4,8 @@
 <button id="b" style="font-size:22px;padding:16px 22px;border:0;border-radius:12px;background:#006bd6;color:white;font-weight:900">Nettoyer cache/service workers</button>
 <pre id="o" style="white-space:pre-wrap;margin-top:20px"></pre>
 <script>
-document.getElementById("b").onclick=async()=>{const o=document.getElementById("o");try{o.textContent="Nettoyage...";if("caches"in window)for(const k of await caches.keys())await caches.delete(k);if("serviceWorker"in navigator)for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();sessionStorage.clear();localStorage.removeItem("didierelo_cache_clean_v6");o.textContent="OK. Supprime l’ancienne icône écran d’accueil, puis ajoute le site à l’écran d’accueil de nouveau.";setTimeout(()=>location.href="/login.html?fresh="+Date.now(),1800)}catch(e){o.textContent=e.message}}
+document.getElementById("b").onclick=async()=>{const o=document.getElementById("o");try{o.textContent="Nettoyage...";if("caches"in window)for(const k of await caches.keys())await caches.delete(k);if("serviceWorker"in navigator)for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();sessionStorage.clear();localStorage.removeItem("didierelo_cache_clean_v6");o.textContent="OK. Supprime l’ancienne icône écran d’accueil, puis ajoute le site à l’écran d’accueil de nouveau.";setTimeout(()=>location.href="/Moventra-transport/login.html?fresh="+Date.now(),1800)}catch(e){o.textContent=e.message}}
 </script><script src="pwa-navigation.js?v=navfix-20260713-1"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script src="push.js?v=onesignal-appid-fix-1" defer></script>
-<script src="admin-nav.js?v=onesignal-appid-fix-1"></script></body></html>
+<script src="push.js?v=subscription-fix-1" defer></script>
+<script src="admin-nav.js?v=subscription-fix-1"></script></body></html>
