@@ -119,6 +119,7 @@ onAuthStateChanged(auth, async (user) => {
     setupRealtimeQuotes();
     loadStats();
     loadDashboardOverview();
+    startDashboardClientsRealtime();
   } catch (error) {
     console.error(error);
     showDebug("Erreur chargement admin: " + (error.code || error.message || error), true);
@@ -682,15 +683,81 @@ async function safeCollection(name) {
   }
 }
 
+function clientIdentity(record = {}) {
+  const email = String(record.email || record.courriel || record.clientEmail || "").trim().toLowerCase();
+  const phone = String(record.telephone || record.phone || record.clientPhone || "").replace(/\D/g, "");
+  const name = String(record.nom || record.name || record.clientNom || record.customerName || "").trim().toLowerCase();
+  const address = String(record.depart || record.adresse || record.address || record.clientAdresse || "").trim().toLowerCase();
+  if (email) return `email:${email}`;
+  if (phone) return `phone:${phone}`;
+  if (name || address) return `name:${name}|${address}`;
+  return record.id ? `id:${record.id}` : "";
+}
+
+function firstClientDate(record = {}) {
+  return asDate(record.createdAt) || asDate(record.firstSeen) || asDate(record.dateCreation) || dateFromRecord(record);
+}
+
+function buildUniqueClients(quotes = [], savedClients = []) {
+  const map = new Map();
+  [...savedClients, ...quotes].forEach(record => {
+    const key = clientIdentity(record);
+    if (!key) return;
+    const created = firstClientDate(record);
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, { firstSeen: created });
+    } else if (created && (!existing.firstSeen || created < existing.firstSeen)) {
+      existing.firstSeen = created;
+    }
+  });
+  return Array.from(map.values());
+}
+
+let dashboardClientUnsubscribers = [];
+function startDashboardClientsRealtime() {
+  dashboardClientUnsubscribers.forEach(unsub => { try { unsub(); } catch (_) {} });
+  dashboardClientUnsubscribers = [];
+  let quotesRows = [];
+  let clientsRows = [];
+  const refresh = () => {
+    const now = new Date();
+    const clients = buildUniqueClients(quotesRows, clientsRows);
+    const newClientsMonth = clients.filter(c => sameMonth(c.firstSeen, now));
+    setText("dashClientsTotal", clients.length);
+    setText("dashNewClientsMonth", `${newClientsMonth.length} nouveau(x) ce mois`);
+  };
+  const listen = (name, assign) => {
+    try {
+      const unsub = onSnapshot(collection(db, name), snap => {
+        const rows = [];
+        snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+        assign(rows);
+        refresh();
+      }, error => {
+        console.warn(`Synchronisation ${name} indisponible:`, error.code || error.message);
+        assign([]);
+        refresh();
+      });
+      dashboardClientUnsubscribers.push(unsub);
+    } catch (error) {
+      console.warn(`Impossible d'écouter ${name}:`, error);
+    }
+  };
+  listen(QUOTES_COLLECTION, rows => { quotesRows = rows; });
+  listen("clients", rows => { clientsRows = rows; });
+}
+
 async function loadDashboardOverview() {
   const dateEl = $("dashboardDate");
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-  const [quotes, tasks, invoices, notifications] = await Promise.all([
+  const [quotes, tasks, invoices, notifications, savedClients] = await Promise.all([
     safeCollection(QUOTES_COLLECTION),
     safeCollection(TASKS_COLLECTION),
     safeCollection("factures"),
-    safeCollection("notifications")
+    safeCollection("notifications"),
+    safeCollection("clients")
   ]);
 
   const now = new Date();
@@ -702,20 +769,9 @@ async function loadDashboardOverview() {
     .reduce((sum, f) => sum + Number(f.total || 0), 0);
   const activeTasks = tasks.filter(t => !["terminé", "annulé"].includes(String(t.status || "").toLowerCase()));
   const tasksToday = tasks.filter(t => sameDay(dateFromRecord(t), now));
-  // Regroupe les soumissions d'une même personne en une seule fiche client.
-  // Priorité : courriel, puis téléphone, puis nom + adresse.
-  const clientMap = new Map();
-  quotes.forEach(q => {
-    const email = String(q.email || q.courriel || q.clientEmail || "").trim().toLowerCase();
-    const phone = String(q.telephone || q.phone || q.clientPhone || "").replace(/\D/g, "");
-    const name = String(q.nom || q.name || q.clientNom || "").trim().toLowerCase();
-    const address = String(q.depart || q.adresse || q.address || "").trim().toLowerCase();
-    const key = email ? `email:${email}` : phone ? `phone:${phone}` : `name:${name}|${address}`;
-    const created = asDate(q.createdAt) || dateFromRecord(q);
-    if (!clientMap.has(key)) clientMap.set(key, { firstSeen: created });
-    else if (created && (!clientMap.get(key).firstSeen || created < clientMap.get(key).firstSeen)) clientMap.get(key).firstSeen = created;
-  });
-  const clients = Array.from(clientMap.values());
+  // Compte les clients uniques depuis les fiches CRM ET les soumissions.
+  // Ainsi, les clients ajoutés manuellement et les nouveaux formulaires sont tous inclus.
+  const clients = buildUniqueClients(quotes, savedClients);
   const newClientsMonth = clients.filter(c => sameMonth(c.firstSeen, now));
   const unreadNotifications = notifications.filter(n => n.read !== true && n.lu !== true && n.status !== "read");
 
