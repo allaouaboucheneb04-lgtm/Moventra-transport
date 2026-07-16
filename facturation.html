@@ -209,6 +209,23 @@
       #facturePreviewContent { position:absolute; left:0; top:0; width:100%; }
       .facturePreview { box-shadow:none !important; border:0 !important; border-radius:0 !important; }
     }
+
+    .quote-source-box { margin-bottom:18px; padding:18px; border:1px solid #cfe2f7; border-radius:18px; background:linear-gradient(135deg,#f7fbff,#eef6ff); }
+    .quote-source-box h3 { margin:0 0 6px; color:#0a1628; }
+    .quote-source-box p { margin:0 0 14px; color:#60758d; line-height:1.5; }
+    .quote-search-wrap { position:relative; }
+    .quote-search-input { width:100%; border:2px solid #d4e5f7; border-radius:14px; padding:14px 16px 14px 46px; font:inherit; background:#fff; }
+    .quote-search-input:focus { outline:none; border-color:#0b73df; box-shadow:0 0 0 4px rgba(11,115,223,.10); }
+    .quote-search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); pointer-events:none; }
+    .quote-search-results { display:none; margin-top:8px; max-height:360px; overflow:auto; border:1px solid #d4e5f7; border-radius:14px; background:#fff; box-shadow:0 14px 34px rgba(10,45,90,.12); }
+    .quote-search-results.open { display:block; }
+    .quote-result-item { width:100%; border:0; border-bottom:1px solid #edf2f8; background:#fff; text-align:left; padding:14px 16px; cursor:pointer; display:grid; gap:4px; }
+    .quote-result-item:last-child { border-bottom:0; }
+    .quote-result-item:hover { background:#edf6ff; }
+    .quote-result-title { font-weight:900; color:#0a1628; }
+    .quote-result-meta { color:#60758d; font-size:.84rem; line-height:1.35; }
+    .quote-selected { margin-top:10px; display:none; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:12px; background:#e8f8ef; color:#087b3d; font-weight:800; }
+    .quote-selected.show { display:flex; }
   </style>
   <link rel="stylesheet" href="admin-nav.css?v=crm-menu-1">
 </head>
@@ -247,6 +264,18 @@
     <section class="panel" id="sectionNouvelleFacture">
       <div class="panelHead">
         <div><span class="adminBadge">Nouvelle</span><h2>Créer une facture</h2></div>
+      </div>
+
+
+      <div class="quote-source-box">
+        <h3>💲 Créer la facture depuis un devis</h3>
+        <p>Recherchez un devis par numéro, client, téléphone, courriel ou service. Les coordonnées, les lignes, les prix, les taxes et les notes seront importés automatiquement.</p>
+        <div class="quote-search-wrap">
+          <span class="quote-search-icon">🔎</span>
+          <input id="factQuoteSearch" class="quote-search-input" type="search" autocomplete="off" placeholder="DEV-2026-..., nom du client, téléphone…">
+        </div>
+        <div id="factQuoteResults" class="quote-search-results" role="listbox"></div>
+        <div id="factQuoteSelected" class="quote-selected"><span id="factQuoteSelectedText"></span><button type="button" class="smallBtn" id="btnClearQuote">Changer</button></div>
       </div>
 
       <div class="client-source-box">
@@ -378,9 +407,10 @@
     const db = getFirestore(app);
     const FACTURES_COLLECTION = "factures";
     let currentUser = null;
-    let allFactures = [], allClients = [], allSubmissions = [];
+    let allFactures = [], allClients = [], allSubmissions = [], allDevis = [];
     let lignes = [];
     let factureEnCours = null;
+    let selectedDevis = null;
     const SETTINGS_DOC = doc(db, "parametres", "entreprise");
     let companySettings = {
       companyName: "MOVENTRA TRANSPORT ET DÉMÉNAGEMENT",
@@ -420,6 +450,7 @@
       if (!document.querySelector("#lignesFacture .invoice-line")) addLigneFacture();
       await loadFactures();
       await loadClients();
+      await loadDevis();
     });
 
     function initDateFields() {
@@ -463,6 +494,133 @@
     };
 
     document.getElementById("addLigne").onclick = addLigneFacture;
+
+
+    // ===== RECHERCHE ET IMPORT D'UN DEVIS =====
+    const quoteSearchInput = document.getElementById("factQuoteSearch");
+    const quoteResults = document.getElementById("factQuoteResults");
+    const quoteSelectedBox = document.getElementById("factQuoteSelected");
+    const quoteSelectedText = document.getElementById("factQuoteSelectedText");
+
+    function devisDateValue(d) {
+      const v = d.updatedAt || d.createdAt || d.serviceDate || "";
+      if (v?.toDate) return v.toDate().getTime();
+      if (v?.seconds) return v.seconds * 1000;
+      return Date.parse(v) || 0;
+    }
+
+    function devisSearchText(d) {
+      return normalized([
+        d.number, d.clientName, d.clientPhone, d.clientEmail,
+        d.depart, d.destination, d.propertyType,
+        ...(Array.isArray(d.lines) ? d.lines.map(x => x.description || x.desc || "") : [])
+      ].join(" "));
+    }
+
+    function updateSelectedQuoteBadge() {
+      if (!selectedDevis) {
+        quoteSelectedBox.classList.remove("show");
+        quoteSelectedText.textContent = "";
+        return;
+      }
+      quoteSelectedText.textContent = `✅ ${selectedDevis.number || "Devis"} — ${selectedDevis.clientName || "Client"} — ${Number(selectedDevis.total || 0).toLocaleString("fr-CA", {minimumFractionDigits:2, maximumFractionDigits:2})} $`;
+      quoteSelectedBox.classList.add("show");
+    }
+
+    function renderQuoteResults(queryText = "") {
+      const q = normalized(queryText);
+      const matches = allDevis.filter(d => !q || d.__search.includes(q)).slice(0, 30);
+      if (!matches.length) {
+        quoteResults.innerHTML = '<div class="client-result-empty">Aucun devis trouvé.</div>';
+      } else {
+        quoteResults.innerHTML = matches.map(d => {
+          const status = String(d.status || "brouillon").replaceAll("_", " ");
+          const linesCount = Array.isArray(d.lines) ? d.lines.length : 0;
+          return `<button type="button" class="quote-result-item" data-devis-id="${esc(d.id)}">
+            <span class="quote-result-title">${esc(d.number || "Devis sans numéro")} — ${esc(d.clientName || "Client")}</span>
+            <span class="quote-result-meta">${esc([d.clientPhone,d.clientEmail].filter(Boolean).join(" • "))}</span>
+            <span class="quote-result-meta">${esc([d.depart,d.destination].filter(Boolean).join(" → "))}</span>
+            <span class="quote-result-meta">${linesCount} ligne${linesCount !== 1 ? "s" : ""} • ${Number(d.total || 0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})} $ • ${esc(status)}</span>
+          </button>`;
+        }).join("");
+      }
+      quoteResults.classList.add("open");
+    }
+
+    function fillInvoiceFromDevis(d) {
+      if (!d) return;
+      selectedDevis = d;
+      factureEnCours = null;
+      document.getElementById("factClientNom").value = d.clientName || "";
+      document.getElementById("factClientEmail").value = d.clientEmail || "";
+      document.getElementById("factClientPhone").value = d.clientPhone || "";
+      document.getElementById("factClientAdresse").value = d.depart || d.clientAdresse || "";
+      document.getElementById("factClientSource").value = d.quoteId || "";
+      if (d.serviceDate) document.getElementById("factDate").value = d.serviceDate;
+      document.getElementById("factNote").value = [
+        d.clientNote || "",
+        d.conditions ? `Conditions du devis : ${d.conditions}` : "",
+        d.number ? `Facture créée à partir du devis ${d.number}.` : ""
+      ].filter(Boolean).join("\n\n");
+      clearInvoiceLines();
+      const lines = Array.isArray(d.lines) && d.lines.length ? d.lines : [];
+      lines.forEach(line => {
+        addLigneFacture();
+        const row = document.querySelector("#lignesFacture .invoice-line:last-child");
+        row.querySelector(".ligne-desc").value = line.description || line.desc || "";
+        row.querySelector(".ligne-qty").value = line.qty ?? line.quantite ?? 1;
+        row.querySelector(".ligne-prix").value = line.unitPrice ?? line.prix ?? line.price ?? 0;
+      });
+      if (!lines.length) addLigneFacture();
+      calcTotaux();
+      quoteSearchInput.value = `${d.number || "Devis"} — ${d.clientName || "Client"}`;
+      quoteResults.classList.remove("open");
+      updateSelectedQuoteBadge();
+      const st = document.getElementById("factureStatus");
+      st.textContent = `✅ Informations importées depuis ${d.number || "le devis"}. Vérifiez la facture puis sauvegardez.`;
+      st.style.color = "#078b45";
+    }
+
+    async function loadDevis() {
+      try {
+        const snap = await getDocs(collection(db, "devis"));
+        allDevis = [];
+        snap.forEach(x => {
+          const d = { id:x.id, ...x.data() };
+          d.__search = devisSearchText(d);
+          allDevis.push(d);
+        });
+        allDevis.sort((a,b) => devisDateValue(b) - devisDateValue(a));
+        const params = new URLSearchParams(location.search);
+        const requested = params.get("devis");
+        if (requested) {
+          const d = allDevis.find(x => String(x.id) === String(requested) || String(x.number) === String(requested));
+          if (d) fillInvoiceFromDevis(d);
+        }
+      } catch (e) {
+        console.error("Impossible de charger les devis", e);
+        quoteResults.innerHTML = `<div class="client-result-empty" style="color:#d21f3c">Impossible de charger les devis : ${esc(e.message || e)}</div>`;
+      }
+    }
+
+    quoteSearchInput.addEventListener("focus", () => renderQuoteResults(quoteSearchInput.value));
+    quoteSearchInput.addEventListener("input", () => renderQuoteResults(quoteSearchInput.value));
+    quoteResults.addEventListener("click", event => {
+      const btn = event.target.closest("[data-devis-id]");
+      if (!btn) return;
+      const d = allDevis.find(x => x.id === btn.dataset.devisId);
+      if (d) fillInvoiceFromDevis(d);
+    });
+    document.getElementById("btnClearQuote").addEventListener("click", () => {
+      selectedDevis = null;
+      quoteSearchInput.value = "";
+      updateSelectedQuoteBadge();
+      quoteSearchInput.focus();
+      renderQuoteResults("");
+    });
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".quote-source-box")) quoteResults.classList.remove("open");
+    });
 
     // ===== CLIENT EXISTANT =====
     window.checkClientExistant = function(nom) {
@@ -775,7 +933,10 @@
         tvq: tvq.toFixed(2), total: total.toFixed(2),
         note: document.getElementById("factNote").value.trim(),
         sourceSubmissionId: document.getElementById("factClientSource").value || factureEnCours?.sourceSubmissionId || "",
-        soumissionId: document.getElementById("factClientSource").value || factureEnCours?.soumissionId || "",
+        soumissionId: document.getElementById("factClientSource").value || selectedDevis?.quoteId || factureEnCours?.soumissionId || "",
+        devisId: selectedDevis?.id || factureEnCours?.devisId || "",
+        devisNumber: selectedDevis?.number || factureEnCours?.devisNumber || "",
+        dossierId: selectedDevis?.dossierId || factureEnCours?.dossierId || "",
         statut, createdAt: factureEnCours?.createdAt || serverTimestamp(), updatedAt: serverTimestamp(), createdBy: currentUser.uid
       };
 
@@ -1064,6 +1225,8 @@ ${companySettings.companyName}`;
     function populateInvoiceForEditing(f) {
       if (!f) return;
       factureEnCours = { ...f, firestoreId: f.firestoreId || f.id };
+      selectedDevis = f.devisId ? allDevis.find(d => d.id === f.devisId) || { id:f.devisId, number:f.devisNumber || "" } : null;
+      updateSelectedQuoteBadge();
       document.getElementById("factClientNom").value = f.clientNom || "";
       document.getElementById("factClientEmail").value = f.clientEmail || "";
       document.getElementById("factClientPhone").value = f.clientPhone || "";
