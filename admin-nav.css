@@ -34,3 +34,16 @@ body{padding-top:68px!important}
 @keyframes moventraBellPulse{0%,75%,100%{transform:scale(1)}82%{transform:scale(1.08)}90%{transform:scale(.98)}}
 @media(max-width:900px){.moventraPwaBell{width:43px;height:43px;margin-left:2px}.moventraTopbarInner{gap:9px}.moventraBrand span{max-width:190px;overflow:hidden;text-overflow:ellipsis}}
 @media(max-width:390px){.moventraBrand span{max-width:145px}.moventraBrand small{font-size:9px}}
+
+
+/* Cloche PWA à double fonction : activation OneSignal puis centre de notifications. */
+.moventraPwaBell{cursor:pointer;color:#173f73;padding:0}
+.moventraPwaBell:disabled{cursor:wait;opacity:.72}
+.moventraPwaBell.needs-permission{background:#fff4df;border-color:#f1c978;color:#9a5a00}
+.moventraPwaBell.needs-permission .moventraPwaBellBadge{background:#f59e0b}
+.moventraPwaBell.is-active{background:#edf5ff;border-color:#cfe1f6;color:#0b66d8}
+.moventraPwaBell.is-loading .moventraPwaBellIcon{animation:moventraBellSpin 1s linear infinite}
+@keyframes moventraBellSpin{to{transform:rotate(360deg)}}
+.moventraBellToast{position:fixed;z-index:11050;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translate(-50%,24px);max-width:min(430px,calc(100vw - 28px));padding:13px 17px;border-radius:14px;color:#fff;font:800 13px/1.4 Arial;box-shadow:0 16px 38px rgba(4,25,52,.24);opacity:0;pointer-events:none;transition:.25s ease;text-align:center}
+.moventraBellToast.show{opacity:1;transform:translate(-50%,0)}
+.moventraBellToast.ok{background:#087a42}.moventraBellToast.error{background:#b42318}
