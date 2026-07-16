@@ -1,7 +1,7 @@
-// Moventra Transport - OneSignal Web SDK v16
-const MOVENTRA_ONESIGNAL_APP_ID = "b7dc3eab-b127-47dd-9ad4-71295880fd34";
+// Moventra Transport — OneSignal Web SDK v16
+// Configuration unique pour https://www.moventratransport.ca
+const MOVENTRA_ONESIGNAL_APP_ID = "a6edf32a-9d3b-4fce-ad98-0c5ccfc43672";
 const MOVENTRA_PUSH_ORIGIN = "https://www.moventratransport.ca";
-
 
 window.moventraPushState = window.moventraPushState || {
   ready: false,
@@ -11,11 +11,11 @@ window.moventraPushState = window.moventraPushState || {
   lastSubscriptionId: ""
 };
 
-function didierPushStandalone() {
+function moventraIsStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
-function didierPushStatus(message, ok = true) {
+function moventraPushStatus(message, ok = true) {
   let el = document.getElementById("notificationStatus") || document.getElementById("adminDebugBox");
   if (!el) {
     el = document.createElement("p");
@@ -29,34 +29,25 @@ function didierPushStatus(message, ok = true) {
   console.log("[Moventra Push]", message);
 }
 
-function didierPermissionText() {
-  if (!("Notification" in window)) return "unsupported";
-  return Notification.permission;
-}
-
-function didierSetButton(text) {
+function moventraSetButton(text) {
   const btn = document.getElementById("enableNotificationsBtn");
   if (btn) btn.textContent = text;
 }
 
-function didierGetSubId(OneSignal) {
+function moventraSubscriptionId(OneSignal) {
   return OneSignal?.User?.PushSubscription?.id ||
          OneSignal?.User?.PushSubscription?.token ||
-         window.moventraPushState.lastSubscriptionId ||
-         "";
+         window.moventraPushState.lastSubscriptionId || "";
 }
 
-// Sauvegarde le Subscription ID dans Firestore pour ciblage précis
 async function saveSubscriptionToFirestore(subscriptionId) {
   try {
     const uid = window.didierCurrentUserId;
     if (!uid || !subscriptionId) return;
 
-    // Import Firebase dynamiquement
     const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
     const { getFirestore, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
     const { firebaseConfig } = await import("./firebase-config.js");
-
     const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
@@ -64,289 +55,212 @@ async function saveSubscriptionToFirestore(subscriptionId) {
       oneSignalId: subscriptionId,
       oneSignalUpdatedAt: new Date().toISOString()
     });
-    console.log("[Moventra Push] Subscription ID sauvegardé dans Firestore:", subscriptionId);
-  } catch(e) {
-    console.warn("[Moventra Push] Impossible de sauvegarder dans Firestore:", e);
+  } catch (error) {
+    console.warn("[Moventra Push] Sauvegarde Firestore ignorée:", error);
   }
 }
 
-let didierLoadPromise = null;
+let moventraInitPromise = null;
 
-function loadOneSignalSdkOnce() {
+function initMoventraOneSignal() {
   if (window.moventraPushState.ready && window.moventraPushState.oneSignal) {
     return Promise.resolve(window.moventraPushState.oneSignal);
   }
-  if (didierLoadPromise) return didierLoadPromise;
+  if (moventraInitPromise) return moventraInitPromise;
 
-  didierLoadPromise = new Promise((resolve, reject) => {
+  moventraInitPromise = new Promise((resolve, reject) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
 
-    let finished = false;
-    const failTimer = setTimeout(() => {
-      if (!finished) {
-        didierLoadPromise = null;
-        reject(new Error("Le SDK OneSignal n’a pas démarré. Vérifie la connexion et recharge l’application."));
-      }
-    }, 20000);
+    const timer = setTimeout(() => {
+      moventraInitPromise = null;
+      reject(new Error("Le SDK OneSignal n’a pas terminé son initialisation."));
+    }, 30000);
 
-    window.OneSignalDeferred.push(async function(OneSignal) {
+    window.OneSignalDeferred.push(async (OneSignal) => {
       try {
-        try {
-          await OneSignal.init({
-            appId: MOVENTRA_ONESIGNAL_APP_ID,
-            serviceWorkerPath: "/OneSignalSDKWorker.js",
-            serviceWorkerParam: { scope: "/" },
-            notifyButton: { enable: false },
-            welcomeNotification: { disable: true }
-          });
-        } catch (initError) {
-          const msg = String(initError?.message || initError || "").toLowerCase();
-          if (!msg.includes("already initialized") &&
-              !msg.includes("already been initialized") &&
-              !msg.includes("déjà initialisé")) {
-            throw initError;
-          }
-          console.info("[Moventra Push] SDK déjà initialisé : instance réutilisée.");
-        }
+        await OneSignal.init({
+          appId: MOVENTRA_ONESIGNAL_APP_ID,
+          // Le chemin est relatif à la racine, comme recommandé par OneSignal.
+          serviceWorkerPath: "OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/" },
+          notifyButton: { enable: false },
+          welcomeNotification: { disable: true },
+          allowLocalhostAsSecureOrigin: false
+        });
 
-        finished = true;
-        clearTimeout(failTimer);
+        clearTimeout(timer);
         window.moventraPushState.ready = true;
-        window.moventraPushState.loading = false;
         window.moventraPushState.oneSignal = OneSignal;
         window.moventraPushState.error = "";
 
-        const id = didierGetSubId(OneSignal);
-        if (id) {
-          window.moventraPushState.lastSubscriptionId = id;
-          saveSubscriptionToFirestore(id);
-        }
+        const updateState = async () => {
+          const id = moventraSubscriptionId(OneSignal);
+          if (id) {
+            window.moventraPushState.lastSubscriptionId = id;
+            await saveSubscriptionToFirestore(id);
+          }
+          window.dispatchEvent(new CustomEvent("moventra-push-state-changed", {
+            detail: {
+              id,
+              optedIn: Boolean(OneSignal.User?.PushSubscription?.optedIn),
+              permission: Boolean(OneSignal.Notifications?.permission)
+            }
+          }));
+        };
 
         try {
-          OneSignal.User.PushSubscription.addEventListener("change", function(event) {
-            console.log("[Moventra Push] Subscription changed", event);
-            const newId = didierGetSubId(OneSignal);
-            if (newId) {
-              window.moventraPushState.lastSubscriptionId = newId;
-              didierPushStatus("✅ Notifications activées.", true);
-              saveSubscriptionToFirestore(newId);
-            }
-          });
-        } catch (e) {
-          console.warn("[Moventra Push] Listener:", e);
+          OneSignal.User.PushSubscription.addEventListener("change", updateState);
+          OneSignal.Notifications.addEventListener("permissionChange", updateState);
+        } catch (listenerError) {
+          console.warn("[Moventra Push] Listener OneSignal:", listenerError);
         }
 
+        await updateState();
         resolve(OneSignal);
-      } catch (e) {
-        finished = true;
-        clearTimeout(failTimer);
-        window.moventraPushState.error = e.message || String(e);
-        window.moventraPushState.loading = false;
-        didierLoadPromise = null;
-        didierPushStatus("Erreur init OneSignal: " + window.moventraPushState.error, false);
-        reject(e);
+      } catch (error) {
+        clearTimeout(timer);
+        window.moventraPushState.ready = false;
+        window.moventraPushState.oneSignal = null;
+        window.moventraPushState.error = error?.message || String(error);
+        moventraInitPromise = null;
+        reject(error);
       }
     });
 
-    // Le SDK est désormais chargé directement dans le HTML avec le snippet officiel.
-    // Secours uniquement si une page ancienne n’a pas encore la balise SDK.
+    // Secours pour les pages qui n'ont pas encore la balise officielle du SDK.
     if (!document.querySelector('script[src*="OneSignalSDK.page.js"]')) {
       const sdk = document.createElement("script");
       sdk.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
       sdk.defer = true;
       sdk.dataset.moventraOneSignalSdk = "1";
       sdk.onerror = () => {
-        finished = true;
-        clearTimeout(failTimer);
-        didierLoadPromise = null;
+        clearTimeout(timer);
+        moventraInitPromise = null;
         reject(new Error("Impossible de télécharger le SDK OneSignal."));
       };
       document.head.appendChild(sdk);
     }
   });
 
-  return didierLoadPromise;
+  return moventraInitPromise;
 }
 
-async function waitForOneSignal(maxMs = 15000) {
-  if (window.moventraPushState.ready && window.moventraPushState.oneSignal) return window.moventraPushState.oneSignal;
-  const p = loadOneSignalSdkOnce();
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("OneSignal ne charge pas. Recharge l'app puis réessaie.")), maxMs)
-  );
-  return Promise.race([p, timeout]);
+function waitForSubscription(OneSignal, timeoutMs = 30000) {
+  return new Promise((resolve) => {
+    const currentId = moventraSubscriptionId(OneSignal);
+    if (currentId || OneSignal.User?.PushSubscription?.optedIn) {
+      resolve({ id: currentId, optedIn: Boolean(OneSignal.User?.PushSubscription?.optedIn) });
+      return;
+    }
+
+    let done = false;
+    const finish = (result) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try { OneSignal.User.PushSubscription.removeEventListener("change", onChange); } catch (_) {}
+      resolve(result);
+    };
+    const onChange = () => {
+      const id = moventraSubscriptionId(OneSignal);
+      const optedIn = Boolean(OneSignal.User?.PushSubscription?.optedIn);
+      if (id || optedIn) finish({ id, optedIn });
+    };
+    const timer = setTimeout(() => finish({ id: moventraSubscriptionId(OneSignal), optedIn: Boolean(OneSignal.User?.PushSubscription?.optedIn) }), timeoutMs);
+
+    try { OneSignal.User.PushSubscription.addEventListener("change", onChange); } catch (_) {}
+    const poll = setInterval(() => {
+      if (done) return clearInterval(poll);
+      onChange();
+    }, 500);
+    setTimeout(() => clearInterval(poll), timeoutMs + 1000);
+  });
 }
 
-loadOneSignalSdkOnce().then((OneSignal) => {
-  const id = didierGetSubId(OneSignal);
-  const opted = OneSignal?.User?.PushSubscription?.optedIn || false;
-  if (id) didierPushStatus("✅ Notifications déjà activées. ID: " + id, true);
-  else if (opted || (("Notification" in window) && Notification.permission === "granted")) didierPushStatus("✅ Notifications déjà autorisées.", true);
-  else didierPushStatus("Push prêt. Clique 🔔 Notifications.", true);
-}).catch(e => console.warn("OneSignal preload failed", e));
-
-window.moventraEnablePush = async function() {
-  if (window.moventraPushState.loading) {
-    didierPushStatus("Activation déjà en cours...", true);
-    return false;
-  }
-
+window.moventraEnablePush = async function () {
+  if (window.moventraPushState.loading) return false;
   window.moventraPushState.loading = true;
-  didierSetButton("Activation...");
+  moventraSetButton("Activation...");
 
   try {
+    if (location.origin !== MOVENTRA_PUSH_ORIGIN) {
+      throw new Error(`Ouvre l’application depuis ${MOVENTRA_PUSH_ORIGIN}. Domaine actuel : ${location.origin}`);
+    }
     if (!("Notification" in window)) {
-      didierPushStatus("Ce navigateur ne supporte pas les notifications. Ouvre Moventra depuis l’icône installée sur l’iPhone.", false);
-      return false;
+      throw new Error("Ce navigateur ne prend pas en charge les notifications Web.");
     }
-
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS && !didierPushStandalone()) {
-      didierPushStatus("Sur iPhone, ouvre Moventra depuis l’icône ajoutée à l’écran d’accueil.", false);
-      return false;
+    if (isIOS && !moventraIsStandalone()) {
+      throw new Error("Sur iPhone, ouvre Moventra depuis l’icône ajoutée à l’écran d’accueil.");
     }
 
-    // Le SDK est préchargé au démarrage de la page. La demande OneSignal
-    // doit être déclenchée depuis le clic de l’utilisateur pour iOS.
-    didierPushStatus("Préparation de OneSignal...");
-    const OneSignal = await waitForOneSignal(25000);
+    const OneSignal = await initMoventraOneSignal();
 
-    let permission = OneSignal.Notifications.permission
-      ? "granted"
-      : Notification.permission;
-
-    if (permission === "default") {
-      didierPushStatus("Demande d’autorisation iPhone...");
-      const granted = await OneSignal.Notifications.requestPermission();
-      permission = granted || OneSignal.Notifications.permission || Notification.permission === "granted"
-        ? "granted"
-        : Notification.permission;
+    if (!OneSignal.Notifications.permission) {
+      moventraPushStatus("Demande d’autorisation iPhone...");
+      await OneSignal.Notifications.requestPermission();
     }
 
-    if (Notification.permission === "denied" || permission === "denied") {
-      didierPushStatus("Notifications bloquées. Ouvre Réglages iPhone > Notifications > Moventra Admin, puis active Autoriser les notifications.", false);
-      return false;
-    }
-
-    if (Notification.permission !== "granted" && !OneSignal.Notifications.permission) {
-      didierPushStatus("Autorisation non accordée par l’iPhone.", false);
-      return false;
-    }
-
-    didierPushStatus("Création de l’abonnement OneSignal...");
-
-    try {
-      await OneSignal.User.PushSubscription.optIn();
-    } catch (e) {
-      console.warn("[Moventra Push] optIn:", e);
-    }
-
-    // Attend l’événement réel de création de l’abonnement.
-    let id = "";
-    let opted = false;
-    for (let i = 0; i < 80; i++) {
-      id = didierGetSubId(OneSignal);
-      opted = Boolean(OneSignal?.User?.PushSubscription?.optedIn);
-      if (id || opted) break;
-      await new Promise(r => setTimeout(r, 250));
-    }
-
-    if (id || opted) {
-      if (id) {
-        window.moventraPushState.lastSubscriptionId = id;
-        await saveSubscriptionToFirestore(id);
+    if (!OneSignal.Notifications.permission && Notification.permission !== "granted") {
+      if (Notification.permission === "denied") {
+        throw new Error("Notifications refusées. Active-les dans Réglages iPhone > Notifications > Moventra Admin.");
       }
-      sessionStorage.removeItem("moventra_push_resume");
-      didierPushStatus("✅ Notifications du téléphone activées.", true);
-      return true;
+      throw new Error("L’autorisation des notifications n’a pas été accordée.");
     }
 
-    // Sur iOS, le navigateur peut accorder la permission avant que le SDK
-    // reconstruise sa souscription. Un seul rechargement permet au SDK de
-    // repartir avec la permission déjà accordée et de terminer l’abonnement.
-    if (Notification.permission === "granted" && sessionStorage.getItem("moventra_push_resume") !== "1") {
-      sessionStorage.setItem("moventra_push_resume", "1");
-      didierPushStatus("Autorisation accordée. Finalisation de l’abonnement...");
-      setTimeout(() => location.reload(), 700);
-      return true;
+    moventraPushStatus("Création de l’abonnement OneSignal...");
+    await OneSignal.User.PushSubscription.optIn();
+
+    const result = await waitForSubscription(OneSignal, 30000);
+    const id = result.id || moventraSubscriptionId(OneSignal);
+    const optedIn = result.optedIn || Boolean(OneSignal.User?.PushSubscription?.optedIn);
+
+    if (!id && !optedIn) {
+      throw new Error("Permission accordée, mais aucun abonnement OneSignal n’a été créé. Vérifie que l’application OneSignal correspond à l’App ID a6edf32a… et au domaine www.moventratransport.ca.");
     }
 
-    sessionStorage.removeItem("moventra_push_resume");
-    didierPushStatus("L’autorisation iPhone est accordée, mais OneSignal n’a pas créé l’abonnement. Vérifie l’App ID et le domaine dans OneSignal.", false);
-    return false;
-  } catch (e) {
-    console.error("[Moventra Push]", e);
-    didierPushStatus("Erreur Push: " + (e.message || e), false);
+    if (id) {
+      window.moventraPushState.lastSubscriptionId = id;
+      await saveSubscriptionToFirestore(id);
+    }
+    moventraPushStatus("✅ Notifications du téléphone activées.", true);
+    window.dispatchEvent(new CustomEvent("moventra-push-activated"));
+    return true;
+  } catch (error) {
+    console.error("[Moventra Push]", error);
+    moventraPushStatus("Erreur Push : " + (error?.message || error), false);
     return false;
   } finally {
     window.moventraPushState.loading = false;
-    didierSetButton("🔔 Notifications");
+    moventraSetButton("🔔 Notifications");
   }
 };
 
-// Reprend automatiquement la création de l’abonnement après le seul
-// rechargement effectué juste après l’autorisation iOS.
-window.addEventListener("load", async () => {
-  if (sessionStorage.getItem("moventra_push_resume") !== "1") return;
-  if (!("Notification" in window) || Notification.permission !== "granted") {
-    sessionStorage.removeItem("moventra_push_resume");
-    return;
-  }
-  try {
-    const OneSignal = await waitForOneSignal(25000);
-    await OneSignal.User.PushSubscription.optIn();
-    for (let i = 0; i < 80; i++) {
-      const id = didierGetSubId(OneSignal);
-      const opted = Boolean(OneSignal?.User?.PushSubscription?.optedIn);
-      if (id || opted) {
-        if (id) {
-          window.moventraPushState.lastSubscriptionId = id;
-          await saveSubscriptionToFirestore(id);
-        }
-        sessionStorage.removeItem("moventra_push_resume");
-        didierPushStatus("✅ Notifications du téléphone activées.", true);
-        window.dispatchEvent(new CustomEvent("moventra-push-activated"));
-        return;
-      }
-      await new Promise(r => setTimeout(r, 250));
-    }
-    sessionStorage.removeItem("moventra_push_resume");
-    didierPushStatus("Autorisation accordée, mais l’abonnement OneSignal n’a pas été créé.", false);
-  } catch (e) {
-    sessionStorage.removeItem("moventra_push_resume");
-    didierPushStatus("Erreur de finalisation OneSignal: " + (e.message || e), false);
-  }
-});
-
-window.moventraPushDebugInfo = async function() {
-  try { await waitForOneSignal(5000); } catch(e) { console.warn(e); }
+window.moventraPushDebugInfo = async function () {
+  try { await initMoventraOneSignal(); } catch (_) {}
   const OneSignal = window.moventraPushState.oneSignal;
-  const info = {
+  const registration = "serviceWorker" in navigator
+    ? await navigator.serviceWorker.getRegistration("/").catch(() => null)
+    : null;
+  return {
     origin: location.origin,
     expectedOrigin: MOVENTRA_PUSH_ORIGIN,
     originMatches: location.origin === MOVENTRA_PUSH_ORIGIN,
-    href: location.href,
-    userAgent: navigator.userAgent,
-    standalone: didierPushStandalone(),
-    notificationPermission: didierPermissionText(),
+    standalone: moventraIsStandalone(),
+    notificationPermission: "Notification" in window ? Notification.permission : "unsupported",
+    oneSignalPermission: Boolean(OneSignal?.Notifications?.permission),
     oneSignalReady: window.moventraPushState.ready,
     oneSignalError: window.moventraPushState.error,
-    pushSubscriptionId: didierGetSubId(OneSignal),
-    pushOptedIn: OneSignal?.User?.PushSubscription?.optedIn || false
+    pushSubscriptionId: moventraSubscriptionId(OneSignal),
+    pushOptedIn: Boolean(OneSignal?.User?.PushSubscription?.optedIn),
+    serviceWorkerScript: registration?.active?.scriptURL || registration?.waiting?.scriptURL || registration?.installing?.scriptURL || ""
   };
-  const files = ["OneSignalSDKWorker.js", "push.js", "manifest.json", "admin-manifest.json"];
-  info.files = {};
-  for (const f of files) {
-    try {
-      const r = await fetch("/" + f + "?t=" + Date.now(), { cache: "no-store" });
-      info.files["/" + f] = r.status + (r.ok ? " OK" : " ERROR");
-    } catch(e) {
-      info.files["/" + f] = "ERROR " + e.message;
-    }
-  }
-  return info;
 };
 
-// Compatibility aliases used by the existing admin/employee pages.
+// Préchargement silencieux. Aucune permission n'est demandée sans clic utilisateur.
+initMoventraOneSignal().catch((error) => {
+  console.warn("[Moventra Push] Préchargement OneSignal:", error);
+});
+
 window.didierEloEnablePush = window.moventraEnablePush;
 window.didierEloPushDebugInfo = window.moventraPushDebugInfo;

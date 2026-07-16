@@ -36,11 +36,11 @@ Méthode universelle recommandée : module HTTP.
 6. Content type : application/json
 7. Body :
 {
-  "app_id": "b7dc3eab-b127-47dd-9ad4-71295880fd34",
+  "app_id": "a6edf32a-9d3b-4fce-ad98-0c5ccfc43672",
   "included_segments": ["Subscribed Users"],
   "headings": {"fr": "Nouvelle soumission Moventra"},
   "contents": {"fr": "{{1.nom}} — {{1.service}} — {{1.telephone}}"},
-  "url": "https://allaouaboucheneb04-lgtm.github.io/Moventra-transport/admin.html"
+  "url": "https://www.moventratransport.ca/admin.html"
 }
 
 IMPORTANT : Dans Make, insère les champs reçus du webhook avec l'outil de mapping au lieu de taper littéralement {{1.nom}} si Make utilise un autre numéro de module.
