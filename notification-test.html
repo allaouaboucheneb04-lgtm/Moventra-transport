@@ -10,8 +10,8 @@
 <body class="adminBody">
 <main class="adminMain">
 <section class="panel">
-<h1>Test Notifications</h1>
-<p id="notificationStatus" class="notificationStatus">Connecte-toi d’abord dans admin.html, puis reviens ici et clique le bouton.</p>
+<h1>Notifications Moventra</h1>
+<p id="notificationStatus" class="notificationStatus">Vérification de l’état des notifications…</p>
 <button id="enableNotificationsBtn" class="smallBtn">🔔 Activer notifications</button>
 <a href="admin.html" class="smallBtn ok" style="margin-top:12px">Retour admin</a>
 </section>
@@ -31,7 +31,7 @@ let currentUser = null;
 
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
-  status.textContent = user ? "Connecté. Clique Activer notifications." : "Non connecté. Va d’abord sur admin.html.";
+  status.textContent = user ? "Connecté. Appuie sur Notifications pour activer ou vérifier l’abonnement." : "Non connecté. Va d’abord sur admin.html.";
 });
 
 document.getElementById("enableNotificationsBtn").onclick = async () => {
@@ -40,6 +40,6 @@ document.getElementById("enableNotificationsBtn").onclick = async () => {
 };
 </script>
 <script src="pwa-navigation.js?v=navfix-20260713-1"></script>
-<script src="admin-nav.js?v=crm-menu-1"></script>
+<script src="admin-nav.js?v=pwa-bell-dual-2"></script>
 </body>
 </html>

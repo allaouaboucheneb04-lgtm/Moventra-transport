@@ -59,7 +59,7 @@
        const wait=()=>typeof window.moventraEnablePush==='function'?resolve():setTimeout(wait,100);wait();
        setTimeout(()=>reject(new Error('Le module de notifications ne répond pas.')),12000);return;
      }
-     const script=document.createElement('script');script.src='push.js?v=pwa-bell-dual-1';script.defer=true;script.dataset.moventraPush='1';
+     const script=document.createElement('script');script.src='push.js?v=pwa-bell-dual-2';script.defer=true;script.dataset.moventraPush='1';
      script.onload=()=>{const wait=()=>typeof window.moventraEnablePush==='function'?resolve():setTimeout(wait,100);wait()};
      script.onerror=()=>reject(new Error('Impossible de charger le module OneSignal.'));
      document.head.appendChild(script);

@@ -81,13 +81,26 @@ function loadOneSignalSdkOnce() {
 
     window.OneSignalDeferred.push(async function(OneSignal) {
       try {
-        await OneSignal.init({
-          appId: MOVENTRA_ONESIGNAL_APP_ID,
-          serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/Moventra-transport/push/onesignal/" },
-          notifyButton: { enable: false },
-          welcomeNotification: { disable: true }
-        });
+        // Une seule initialisation est autorisée par le SDK OneSignal v16.
+        // En navigation PWA/Safari, l'ancien document peut parfois conserver le SDK
+        // déjà initialisé. Dans ce cas, on réutilise simplement l'instance existante.
+        try {
+          await OneSignal.init({
+            appId: MOVENTRA_ONESIGNAL_APP_ID,
+            serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
+            serviceWorkerParam: { scope: "/Moventra-transport/push/onesignal/" },
+            notifyButton: { enable: false },
+            welcomeNotification: { disable: true }
+          });
+        } catch (initError) {
+          const initMessage = String(initError?.message || initError || "").toLowerCase();
+          if (!initMessage.includes("already initialized") &&
+              !initMessage.includes("already been initialized") &&
+              !initMessage.includes("déjà initialisé")) {
+            throw initError;
+          }
+          console.info("[Moventra Push] OneSignal était déjà initialisé : instance réutilisée.");
+        }
 
         window.moventraPushState.ready = true;
         window.moventraPushState.loading = false;
