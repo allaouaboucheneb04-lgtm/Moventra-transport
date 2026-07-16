@@ -59,7 +59,7 @@
        const wait=()=>typeof window.moventraEnablePush==='function'?resolve():setTimeout(wait,100);wait();
        setTimeout(()=>reject(new Error('Le module de notifications ne répond pas.')),12000);return;
      }
-     const script=document.createElement('script');script.src='push.js?v=pwa-bell-dual-2';script.defer=true;script.dataset.moventraPush='1';
+     const script=document.createElement('script');script.src='push.js?v=www-domain-permission-1';script.defer=true;script.dataset.moventraPush='1';
      script.onload=()=>{const wait=()=>typeof window.moventraEnablePush==='function'?resolve():setTimeout(wait,100);wait()};
      script.onerror=()=>reject(new Error('Impossible de charger le module OneSignal.'));
      document.head.appendChild(script);
@@ -116,13 +116,14 @@
    try{
      await loadPushScript();
      if(typeof window.moventraEnablePush!=='function')throw new Error('Activation OneSignal indisponible.');
-     await window.moventraEnablePush();
-     const active=await checkPushActive();
+     const activationOk=await window.moventraEnablePush();
+     const active=activationOk || await checkPushActive();
      if(active){setActive(0);startUnreadListener();showToast('Notifications du téléphone activées.',true)}
      else{
        setInactive();
-       if(Notification.permission==='denied')showToast('Notifications bloquées. Active-les dans Réglages > Notifications > Moventra.',false);
-       else showToast('Autorisation non accordée. Appuie de nouveau sur la cloche pour réessayer.',false);
+       if(Notification.permission==='denied')showToast('Notifications bloquées. Ouvre Réglages iPhone > Notifications > Moventra Admin.',false);
+       else if(Notification.permission==='default')showToast('La demande iPhone ne s’est pas ouverte. Ferme complètement l’app, rouvre-la depuis l’icône et réessaie.',false);
+       else showToast('Permission iPhone accordée, mais abonnement OneSignal non créé. Vérifie le domaine www.moventratransport.ca dans OneSignal.',false);
      }
    }catch(e){console.error(e);setInactive();showToast(e.message||'Impossible d’activer les notifications.',false)}
    finally{bell.disabled=false;bell.classList.remove('is-loading')}

@@ -1,17 +1,17 @@
 {
-  "id": "./moventra-site",
+  "id": "/",
   "name": "Moventra Transport",
   "short_name": "Moventra",
   "description": "Transport, déménagement résidentiel et commercial à Montréal, Rive-Sud et Rive-Nord.",
-  "start_url": "./index.html?v=pwa-404-fix-1",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#0b46b5",
   "icons": [
     {
-      "src": "./logo.jpeg",
+      "src": "/logo.jpeg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"

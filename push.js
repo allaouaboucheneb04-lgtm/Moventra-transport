@@ -1,5 +1,7 @@
 // Moventra Transport - OneSignal Web SDK v16
 const MOVENTRA_ONESIGNAL_APP_ID = "b7dc3eab-b127-47dd-9ad4-71295880fd34";
+const MOVENTRA_PUSH_ORIGIN = "https://www.moventratransport.ca";
+
 
 window.moventraPushState = window.moventraPushState || {
   ready: false,
@@ -87,8 +89,8 @@ function loadOneSignalSdkOnce() {
         try {
           await OneSignal.init({
             appId: MOVENTRA_ONESIGNAL_APP_ID,
-            serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
-            serviceWorkerParam: { scope: "/Moventra-transport/push/onesignal/" },
+            serviceWorkerPath: "/OneSignalSDKWorker.js",
+            serviceWorkerParam: { scope: "/" },
             notifyButton: { enable: false },
             welcomeNotification: { disable: true }
           });
@@ -168,7 +170,7 @@ loadOneSignalSdkOnce().then((OneSignal) => {
 window.moventraEnablePush = async function() {
   if (window.moventraPushState.loading) {
     didierPushStatus("Activation déjà en cours...", true);
-    return;
+    return false;
   }
 
   window.moventraPushState.loading = true;
@@ -176,80 +178,72 @@ window.moventraEnablePush = async function() {
 
   try {
     if (!("Notification" in window)) {
-      didierPushStatus("Ce navigateur ne supporte pas les notifications. Ouvre l'icône installée sur iPhone.", false);
-      return;
+      didierPushStatus("Ce navigateur ne supporte pas les notifications. Ouvre Moventra depuis l’icône installée sur l’iPhone.", false);
+      return false;
     }
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS && !didierPushStandalone()) {
-      didierPushStatus("Sur iPhone, ouvre Moventra depuis l’icône ajoutée à l’écran d’accueil, puis reclique sur Notifications.", false);
-      return;
+      didierPushStatus("Sur iPhone, ouvre Moventra depuis l’icône ajoutée à l’écran d’accueil.", false);
+      return false;
     }
 
-    didierPushStatus("Chargement OneSignal...");
+    // IMPORTANT iPhone : l’appel natif doit démarrer immédiatement dans le clic.
+    // Si on attend d’abord le chargement du SDK, Safari perd le geste utilisateur
+    // et n’affiche jamais la boîte Autoriser / Refuser.
+    let nativePermission = Notification.permission;
+    if (nativePermission === "default") {
+      didierPushStatus("Demande d’autorisation iPhone...");
+      nativePermission = await Notification.requestPermission();
+    }
+
+    if (nativePermission === "denied") {
+      didierPushStatus("Notifications bloquées. Ouvre Réglages iPhone > Notifications > Moventra Admin, puis active Autoriser les notifications.", false);
+      return false;
+    }
+
+    if (nativePermission !== "granted") {
+      didierPushStatus("Autorisation non accordée par l’iPhone.", false);
+      return false;
+    }
+
+    // Une fois la permission native accordée, OneSignal peut créer l’abonnement.
+    didierPushStatus("Connexion à OneSignal...");
     const OneSignal = await waitForOneSignal();
 
-    const currentId = didierGetSubId(OneSignal);
-    const currentOpted = OneSignal?.User?.PushSubscription?.optedIn || false;
-
-    if (currentId) {
-      window.moventraPushState.lastSubscriptionId = currentId;
-      await saveSubscriptionToFirestore(currentId);
-      didierPushStatus("✅ Notifications déjà activées. ID: " + currentId, true);
-      return;
-    }
-    if (currentOpted && Notification.permission === "granted") {
-      didierPushStatus("✅ Notifications déjà activées.", true);
-      return;
-    }
-
-    if (Notification.permission === "denied") {
-      didierPushStatus("Notifications bloquées. Réglages iPhone > Notifications > Moventra Transport > Autoriser.", false);
-      return;
-    }
-
-    if (Notification.permission !== "granted") {
-      didierPushStatus("Demande autorisation...");
-      await OneSignal.Notifications.requestPermission();
-      if (Notification.permission !== "granted" && OneSignal.Slidedown?.promptPush) {
-        await OneSignal.Slidedown.promptPush();
-      }
-    }
-
-    const granted = Notification.permission === "granted" || OneSignal.Notifications.permission;
-    if (!granted) {
-      didierPushStatus("Autorisation non accordée.", false);
-      return;
-    }
-
-    didierPushStatus("Création abonnement OneSignal...");
     try {
       await OneSignal.User.PushSubscription.optIn();
-    } catch(e) {
-      console.warn("optIn warning", e);
+    } catch (e) {
+      console.warn("[Moventra Push] optIn:", e);
     }
 
     let id = "";
     let opted = false;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       id = didierGetSubId(OneSignal);
-      opted = OneSignal?.User?.PushSubscription?.optedIn || false;
-      if (id) break;
-      await new Promise(r => setTimeout(r, 500));
+      opted = Boolean(OneSignal?.User?.PushSubscription?.optedIn);
+      if (id || opted) break;
+      await new Promise(r => setTimeout(r, 250));
     }
 
     if (id) {
       window.moventraPushState.lastSubscriptionId = id;
       await saveSubscriptionToFirestore(id);
-      didierPushStatus("✅ Notifications activées. ID: " + id, true);
-    } else if (opted || Notification.permission === "granted") {
-      didierPushStatus("✅ Notifications activées.", true);
-    } else {
-      didierPushStatus("❌ Abonnement non créé. Vérifie ta connexion internet et réessaie.", false);
+      didierPushStatus("✅ Notifications du téléphone activées.", true);
+      return true;
     }
-  } catch(e) {
-    console.error(e);
+
+    if (opted || Notification.permission === "granted") {
+      didierPushStatus("✅ Autorisation accordée. Finalisation de l’abonnement OneSignal...", true);
+      return true;
+    }
+
+    didierPushStatus("L’iPhone a autorisé les notifications, mais OneSignal n’a pas créé l’abonnement. Vérifie que le Site URL OneSignal est https://www.moventratransport.ca.", false);
+    return false;
+  } catch (e) {
+    console.error("[Moventra Push]", e);
     didierPushStatus("Erreur Push: " + (e.message || e), false);
+    return false;
   } finally {
     window.moventraPushState.loading = false;
     didierSetButton("🔔 Notifications");
@@ -261,6 +255,8 @@ window.moventraPushDebugInfo = async function() {
   const OneSignal = window.moventraPushState.oneSignal;
   const info = {
     origin: location.origin,
+    expectedOrigin: MOVENTRA_PUSH_ORIGIN,
+    originMatches: location.origin === MOVENTRA_PUSH_ORIGIN,
     href: location.href,
     userAgent: navigator.userAgent,
     standalone: didierPushStandalone(),
@@ -270,14 +266,14 @@ window.moventraPushDebugInfo = async function() {
     pushSubscriptionId: didierGetSubId(OneSignal),
     pushOptedIn: OneSignal?.User?.PushSubscription?.optedIn || false
   };
-  const files = ["push/onesignal/OneSignalSDKWorker.js", "push.js", "manifest.json", "admin-manifest.json"];
+  const files = ["OneSignalSDKWorker.js", "push.js", "manifest.json", "admin-manifest.json"];
   info.files = {};
   for (const f of files) {
     try {
-      const r = await fetch("/Moventra-transport/" + f + "?t=" + Date.now(), { cache: "no-store" });
-      info.files["/Moventra-transport/" + f] = r.status + (r.ok ? " OK" : " ERROR");
+      const r = await fetch("/" + f + "?t=" + Date.now(), { cache: "no-store" });
+      info.files["/" + f] = r.status + (r.ok ? " OK" : " ERROR");
     } catch(e) {
-      info.files["/Moventra-transport/" + f] = "ERROR " + e.message;
+      info.files["/" + f] = "ERROR " + e.message;
     }
   }
   return info;

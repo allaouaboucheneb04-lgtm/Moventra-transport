@@ -64,5 +64,5 @@ document.getElementById("saveSettings").onclick=async()=>{const st=document.getE
 onAuthStateChanged(auth,async u=>{if(!u){location.replace("login.html");return}document.getElementById("adminEmail").textContent=u.email;const r=await getDoc(doc(db,ROLES_COLLECTION,u.uid));if(!r.exists()||r.data().role!=="admin"){await signOut(auth);location.replace("login.html");return}document.getElementById("logoutBtn").onclick=async()=>{await signOut(auth);location.replace("login.html")};resize();await load()});
 </script>
 <script src="pwa-navigation.js?v=settings-1"></script>
-<script src="admin-nav.js?v=pwa-bell-dual-2"></script>
+<script src="admin-nav.js?v=www-domain-permission-1"></script>
 </body></html>
