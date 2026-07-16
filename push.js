@@ -81,11 +81,16 @@ function loadOneSignalSdkOnce() {
   didierLoadPromise = new Promise((resolve, reject) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
 
+    let finished = false;
+    const failTimer = setTimeout(() => {
+      if (!finished) {
+        didierLoadPromise = null;
+        reject(new Error("Le SDK OneSignal n’a pas démarré. Vérifie la connexion et recharge l’application."));
+      }
+    }, 20000);
+
     window.OneSignalDeferred.push(async function(OneSignal) {
       try {
-        // Une seule initialisation est autorisée par le SDK OneSignal v16.
-        // En navigation PWA/Safari, l'ancien document peut parfois conserver le SDK
-        // déjà initialisé. Dans ce cas, on réutilise simplement l'instance existante.
         try {
           await OneSignal.init({
             appId: MOVENTRA_ONESIGNAL_APP_ID,
@@ -95,18 +100,21 @@ function loadOneSignalSdkOnce() {
             welcomeNotification: { disable: true }
           });
         } catch (initError) {
-          const initMessage = String(initError?.message || initError || "").toLowerCase();
-          if (!initMessage.includes("already initialized") &&
-              !initMessage.includes("already been initialized") &&
-              !initMessage.includes("déjà initialisé")) {
+          const msg = String(initError?.message || initError || "").toLowerCase();
+          if (!msg.includes("already initialized") &&
+              !msg.includes("already been initialized") &&
+              !msg.includes("déjà initialisé")) {
             throw initError;
           }
-          console.info("[Moventra Push] OneSignal était déjà initialisé : instance réutilisée.");
+          console.info("[Moventra Push] SDK déjà initialisé : instance réutilisée.");
         }
 
+        finished = true;
+        clearTimeout(failTimer);
         window.moventraPushState.ready = true;
         window.moventraPushState.loading = false;
         window.moventraPushState.oneSignal = OneSignal;
+        window.moventraPushState.error = "";
 
         const id = didierGetSubId(OneSignal);
         if (id) {
@@ -116,20 +124,22 @@ function loadOneSignalSdkOnce() {
 
         try {
           OneSignal.User.PushSubscription.addEventListener("change", function(event) {
-            console.log("PushSubscription changed", event);
+            console.log("[Moventra Push] Subscription changed", event);
             const newId = didierGetSubId(OneSignal);
             if (newId) {
               window.moventraPushState.lastSubscriptionId = newId;
-              didierPushStatus("✅ Notifications activées. ID: " + newId, true);
+              didierPushStatus("✅ Notifications activées.", true);
               saveSubscriptionToFirestore(newId);
             }
           });
-        } catch(e) {
-          console.warn("listener error", e);
+        } catch (e) {
+          console.warn("[Moventra Push] Listener:", e);
         }
 
         resolve(OneSignal);
-      } catch(e) {
+      } catch (e) {
+        finished = true;
+        clearTimeout(failTimer);
         window.moventraPushState.error = e.message || String(e);
         window.moventraPushState.loading = false;
         didierLoadPromise = null;
@@ -138,12 +148,20 @@ function loadOneSignalSdkOnce() {
       }
     });
 
+    // Le SDK est désormais chargé directement dans le HTML avec le snippet officiel.
+    // Secours uniquement si une page ancienne n’a pas encore la balise SDK.
     if (!document.querySelector('script[src*="OneSignalSDK.page.js"]')) {
-      const s = document.createElement("script");
-      s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
-      s.async = true;
-      s.onerror = () => { didierLoadPromise = null; reject(new Error("Impossible de charger OneSignalSDK.page.js")); };
-      document.head.appendChild(s);
+      const sdk = document.createElement("script");
+      sdk.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+      sdk.defer = true;
+      sdk.dataset.moventraOneSignalSdk = "1";
+      sdk.onerror = () => {
+        finished = true;
+        clearTimeout(failTimer);
+        didierLoadPromise = null;
+        reject(new Error("Impossible de télécharger le SDK OneSignal."));
+      };
+      document.head.appendChild(sdk);
     }
   });
 
