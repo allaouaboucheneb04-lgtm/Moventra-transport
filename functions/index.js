@@ -1,9 +1,0 @@
-const {onDocumentCreated}=require('firebase-functions/v2/firestore');
-const {defineSecret}=require('firebase-functions/params');
-const admin=require('firebase-admin');admin.initializeApp();
-const oneSignalKey=defineSecret('ONESIGNAL_REST_API_KEY');
-exports.notifyNewQuote=onDocumentCreated({document:'demandes_soumission/{id}',secrets:[oneSignalKey]},async event=>{
- const x=event.data.data();
- const body={app_id:'b7dc3eab-b127-47dd-9ad4-71295880fd34',included_segments:['Subscribed Users'],headings:{fr:'Nouvelle soumission Moventra',en:'New Moventra quote'},contents:{fr:`${x.nom||'Client'} — ${x.service||'Service'} — ${x.telephone||''}`,en:`${x.nom||'Client'} — ${x.service||'Service'} — ${x.telephone||''}`},url:'https://allaouaboucheneb04-lgtm.github.io/Moventra-transport/admin.html'};
- const r=await fetch('https://api.onesignal.com/notifications',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Key '+oneSignalKey.value()},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());
-});

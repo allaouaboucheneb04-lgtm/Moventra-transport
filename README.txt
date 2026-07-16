@@ -1,1 +1,0 @@
-Version avec photos différentes pour chaque service + slider accueil automatique chaque 3 secondes.
