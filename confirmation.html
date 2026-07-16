@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0757bd">
+  <title>Demande reçue | Moventra Transport</title>
+  <style>
+    :root{--blue:#0757bd;--blue2:#118df0;--navy:#071f45;--bg:#edf5ff;--line:#d7e6f8;--muted:#657994;--green:#079653}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eef6ff,#f8fbff);font-family:Arial,Helvetica,sans-serif;color:var(--navy)}
+    .top{background:#fff;border-bottom:1px solid #dfeaf6;padding:18px max(20px,env(safe-area-inset-left));display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:5}
+    .top img{width:58px;height:58px;border-radius:12px;object-fit:cover}.brand b{font-size:20px}.brand span{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+    main{max-width:820px;margin:auto;padding:28px 18px calc(50px + env(safe-area-inset-bottom))}
+    .success{background:linear-gradient(135deg,#073f91,#0c75df 58%,#19a5f5);color:#fff;border-radius:28px;padding:34px 26px;text-align:center;box-shadow:0 18px 50px rgba(5,77,163,.22)}
+    .check{width:76px;height:76px;border-radius:50%;background:#fff;color:var(--green);display:grid;place-items:center;font-size:42px;margin:0 auto 18px}.success h1{font-size:32px;margin:0 0 10px}.success p{font-size:17px;line-height:1.55;margin:0;color:#e9f5ff}
+    .number{margin:24px auto 0;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:16px;padding:15px}.number small{display:block;text-transform:uppercase;letter-spacing:1.4px;color:#d7ecff;font-weight:bold}.number strong{display:block;font-size:24px;margin-top:6px;letter-spacing:.5px}
+    .contactNotice{margin:22px 0;background:#eaf9f1;border:1px solid #bfe8d2;border-radius:18px;padding:18px 20px;color:#11663d;line-height:1.55;font-weight:600}
+    .card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px;margin-top:18px;box-shadow:0 10px 28px rgba(31,77,124,.07)}
+    .card h2{margin:0 0 18px;font-size:21px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}.row{padding:13px 0;border-bottom:1px solid #edf2f8}.row span{display:block;color:var(--muted);font-size:13px;font-weight:bold;margin-bottom:5px}.row strong{font-size:16px;word-break:break-word}.full{grid-column:1/-1}
+    .inventory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.item{background:#f5f9ff;border:1px solid #dfebf8;border-radius:12px;padding:11px 13px;display:flex;justify-content:space-between;gap:10px}.empty{color:var(--muted)}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.btn{border:0;border-radius:14px;padding:15px;text-align:center;text-decoration:none;font-weight:bold;font-size:15px}.primary{background:var(--blue);color:#fff}.secondary{background:#fff;border:1px solid #cfe0f4;color:var(--blue)}
+    .footer{text-align:center;color:var(--muted);font-size:13px;line-height:1.6;margin-top:26px}
+    @media(max-width:620px){main{padding-top:18px}.success{padding:28px 18px}.success h1{font-size:27px}.grid{grid-template-columns:1fr}.inventory{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.full{grid-column:auto}}
+  </style>
+</head>
+<body>
+<header class="top"><img src="logo.jpeg" alt="Moventra Transport"><div class="brand"><b>MOVENTRA TRANSPORT</b><span>Déménagement et transport</span></div></header>
+<main>
+  <section class="success">
+    <div class="check">✓</div>
+    <h1>Votre demande a bien été reçue</h1>
+    <p>Merci d’avoir choisi Moventra. Voici le récapitulatif des informations que vous avez envoyées.</p>
+    <div class="number"><small>Numéro de l’estimation</small><strong id="number">—</strong></div>
+  </section>
+  <div class="contactNotice">📞✉️ Notre équipe analysera votre demande et vous contactera par téléphone ou par courriel afin de confirmer les détails et vous transmettre le devis officiel.</div>
+  <section class="card"><h2>👤 Vos coordonnées</h2><div class="grid" id="clientGrid"></div></section>
+  <section class="card"><h2>🚚 Votre demande</h2><div class="grid" id="requestGrid"></div></section>
+  <section class="card"><h2>📦 Inventaire déclaré</h2><div class="inventory" id="inventory"></div></section>
+  <section class="card" id="notesCard"><h2>📝 Informations complémentaires</h2><div id="notes"></div></section>
+  <div class="actions"><a class="btn primary" href="index.html">Retour au site</a><a class="btn secondary" href="tel:4382299722">Appeler Moventra</a></div>
+  <div class="footer">Conservez votre numéro d’estimation pour toute communication avec nous.<br>438-229-9722 · info@moventratransport.ca</div>
+</main>
+<script>
+  const fallbackNumber = new URLSearchParams(location.search).get('numero') || '—';
+  let data = {};
+  try { data = JSON.parse(sessionStorage.getItem('moventraLastSubmission') || '{}'); } catch(e) {}
+  const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const dateFr = v => { if(!v) return 'Non précisée'; const d = new Date(v + (String(v).length===10?'T12:00:00':'')); return isNaN(d)?v:d.toLocaleDateString('fr-CA',{day:'numeric',month:'long',year:'numeric'}); };
+  document.getElementById('number').textContent = data.estimationNumber || fallbackNumber;
+  const renderRows=(el,rows)=>{ el.innerHTML=rows.map(([label,value,full])=>`<div class="row ${full?'full':''}"><span>${esc(label)}</span><strong>${esc(value || 'Non précisé')}</strong></div>`).join(''); };
+  renderRows(document.getElementById('clientGrid'), [['Nom complet',data.name],['Téléphone',data.phone],['Courriel',data.email,true]]);
+  renderRows(document.getElementById('requestGrid'), [
+    ['Service',data.service],['Date souhaitée',dateFr(data.date)],['Adresse de départ',data.address,true],['Adresse d’arrivée',data.destination,true],['Type de logement',data.propertyType],['Nombre de pièces',data.rooms],['Étage au départ',data.startFloor],['Étage à l’arrivée',data.endFloor],['Ascenseur au départ',data.startElevator],['Ascenseur à l’arrivée',data.endElevator],['Distance camion → porte',data.doorDistance,true],['Objets spéciaux',data.inventoryOther,true]
+  ]);
+  const inv = Array.isArray(data.inventory) ? data.inventory : [];
+  document.getElementById('inventory').innerHTML = inv.length ? inv.map(x=>`<div class="item"><span>${esc(x.label)}</span><strong>${esc(x.qty)}</strong></div>`).join('') : '<div class="empty">Aucun article sélectionné.</div>';
+  if(data.message){ document.getElementById('notes').textContent=data.message; } else { document.getElementById('notesCard').style.display='none'; }
+</script>
+</body>
+</html>

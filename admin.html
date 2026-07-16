@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <script>
+    (() => {
+      if (!sessionStorage.getItem('moventra_admin_verified')) {
+        location.replace('login.html?required=1');
+      }
+    })();
+  </script>
+  <title>Tableau de bord | Moventra</title>
+  <link rel="icon" href="logo.jpeg">
+  <link rel="manifest" href="./admin-manifest.json?v=push-domain-fix-1">
+  <link rel="apple-touch-icon" href="logo.jpeg">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Moventra Admin">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="style.css?v=dashboard-clean-1">
+  <link rel="stylesheet" href="admin.css?v=dashboard-clean-1">
+  <link rel="stylesheet" href="admin-nav.css?v=dashboard-clean-1">
+  <link rel="stylesheet" href="dashboard-clean.css?v=dashboard-scrollfix-1">
+</head>
+<body class="dashboardCleanBody">
+  <main class="dashboardShell">
+    <section class="dashboardHeroClean">
+      <div>
+        <span class="dashboardEyebrow">TABLEAU DE BORD</span>
+        <h1>Bonjour, <span id="dashboardAdminName">bienvenue</span> 👋</h1>
+        <p>Suivez l’activité de Moventra en un coup d’œil.</p>
+      </div>
+      <div class="dashboardHeroDate" id="dashboardDate">—</div>
+    </section>
+
+    <section class="dashboardStatsClean" aria-label="Indicateurs principaux">
+      <a class="dashboardStatClean statBlue" href="soumissions.html">
+        <span class="statCleanIcon">📋</span>
+        <div><strong id="dashQuotesToday">0</strong><b>Soumissions aujourd’hui</b><small id="dashQuotesMonth">0 ce mois-ci</small></div>
+      </a>
+      <a class="dashboardStatClean statGreen" href="facturation.html">
+        <span class="statCleanIcon">💰</span>
+        <div><strong id="dashRevenueMonth">0,00 $</strong><b>Revenus du mois</b><small id="dashInvoicesMonth">0 facture(s)</small></div>
+      </a>
+      <a class="dashboardStatClean statOrange" href="dispatch.html">
+        <span class="statCleanIcon">🚚</span>
+        <div><strong id="dashActiveTasks">0</strong><b>Missions en cours</b><small id="dashTasksToday">0 aujourd’hui</small></div>
+      </a>
+      <a class="dashboardStatClean statPurple" href="clients.html">
+        <span class="statCleanIcon">👥</span>
+        <div><strong id="dashClientsTotal">0</strong><b>Total clients</b><small id="dashNewClientsMonth">0 nouveau(x) ce mois</small></div>
+      </a>
+    </section>
+
+    <section class="dashboardNoticeClean">
+      <a href="notification-test.html">
+        <span>🔔</span>
+        <div><b><span id="dashUnreadNotifications">0</span> notification(s) non lue(s)</b><small>Consulter les alertes et tests push</small></div>
+        <i>›</i>
+      </a>
+    </section>
+
+    <section class="dashboardSectionClean">
+      <div class="dashboardSectionTitle"><div><span>ACCÈS RAPIDE</span><h2>Actions principales</h2></div></div>
+      <div class="dashboardActionsClean">
+        <a href="soumissions.html"><span>📋</span><div><b>Soumissions</b><small>Voir et traiter les demandes</small></div></a>
+        <a href="clients.html"><span>👥</span><div><b>Clients</b><small>Rechercher une fiche client</small></div></a>
+        <a href="facturation.html"><span>🧾</span><div><b>Nouvelle facture</b><small>Créer, PDF et Gmail</small></div></a>
+        <a href="dispatch.html"><span>👷</span><div><b>Planifier une mission</b><small>Assigner un employé</small></div></a>
+        <a href="calendrier.html"><span>📅</span><div><b>Calendrier</b><small>Missions et échéances</small></div></a>
+        <a href="promotions.html"><span>🎉</span><div><b>Promotion</b><small>Lancer une campagne</small></div></a>
+      </div>
+    </section>
+
+    <section class="dashboardColumnsClean">
+      <article class="dashboardCardClean">
+        <header><div><span>ACTIVITÉ RÉCENTE</span><h2>Dernières opérations</h2></div><a href="soumissions.html">Tout voir</a></header>
+        <div id="dashboardRecentActivity" class="dashboardActivity"><p class="dashboardLoading">Chargement…</p></div>
+      </article>
+      <article class="dashboardCardClean">
+        <header><div><span>À VENIR</span><h2>Prochains rendez-vous</h2></div><a href="calendrier.html">Calendrier</a></header>
+        <div id="dashboardUpcoming" class="dashboardUpcoming"><p class="dashboardLoading">Chargement…</p></div>
+      </article>
+    </section>
+
+    <section class="dashboardCardClean dashboardPerformanceClean">
+      <header><div><span>PERFORMANCE</span><h2>Résumé du mois</h2></div></header>
+      <div class="dashboardPerformanceGrid">
+        <div class="performanceMetric"><div><span>Taux de conversion</span><strong id="dashConversionRate">0 %</strong></div><div class="progress"><i id="dashConversionBar"></i></div></div>
+        <div class="performanceMetric"><div><span>Factures payées</span><strong id="dashPaidRate">0 %</strong></div><div class="progress green"><i id="dashPaidBar"></i></div></div>
+        <div class="performanceService"><span>Service le plus demandé</span><strong id="dashTopService">—</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Éléments techniques gardés invisibles pour le JavaScript historique. -->
+  <div id="legacyTechnicalElements" hidden>
+    <span id="adminEmail"></span><button id="logoutBtn"></button><button id="logoutBtnMobile"></button>
+    <button id="enableNotificationsBtn"></button><button id="enableNotificationsBtnMobile"></button>
+    <strong id="countQuotes">0</strong><strong id="countTasks">0</strong><strong id="countEmployees">0</strong>
+    <input id="socialFacebook"><input id="socialInstagram"><input id="socialTiktok">
+    <button id="saveFacebook"></button><button id="saveInstagram"></button><button id="saveTiktok"></button><p id="socialStatus"></p>
+    <form id="inviteForm"><input name="name"><input name="email"><select name="role"><option value="employe">Employé</option></select></form>
+    <p id="inviteStatus"></p><div id="inviteResult"><input id="inviteLink"><button id="copyInvite"></button><a id="emailInvite"></a></div>
+    <button id="refreshQuotes"></button><button id="refreshTasks"></button>
+    <input id="searchQuotes"><div id="quotesList"></div><div id="tasksList"></div><p id="notificationStatus"></p>
+  </div>
+
+  <script type="module" src="admin-v3.js?v=dashboard-clean-1"></script>
+  <script src="pwa.js?v=dashboard-clean-1"></script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script src="push.js?v=subscription-fix-1" defer></script>
+<script src="admin-nav.js?v=subscription-fix-1"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const email = sessionStorage.getItem('moventra_admin_email') || '';
+      const name = email ? email.split('@')[0].replace(/[._-]+/g,' ') : 'Allaoua';
+      const el = document.getElementById('dashboardAdminName');
+      if (el) el.textContent = name.replace(/\b\w/g, c => c.toUpperCase());
+    });
+  </script>
+
+  <script>
+    // Empêche Safari/PWA de restaurer un verrouillage du défilement après le menu ou le retour arrière.
+    function restoreDashboardScroll() {
+      document.documentElement.style.overflowY = 'auto';
+      document.body.style.overflow = '';
+      document.body.style.overflowY = 'auto';
+      document.body.style.position = '';
+      document.body.classList.remove('menu-open');
+    }
+    window.addEventListener('pageshow', restoreDashboardScroll);
+    window.addEventListener('load', restoreDashboardScroll);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) restoreDashboardScroll();
+    });
+  </script>
+</body>
+</html>

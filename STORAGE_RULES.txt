@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /submission-photos/{submissionId}/{fileName} {
+      // Le formulaire public peut téléverser uniquement de petites images.
+      allow create: if request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      // Seuls les utilisateurs connectés à l'administration peuvent lire/supprimer.
+      allow read, delete: if request.auth != null;
+      allow update: if false;
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

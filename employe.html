@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Espace employé | Moventra Transport</title>
+  <link rel="icon" href="logo.jpeg">
+  <link rel="stylesheet" href="style.css?v=v3">
+  <link rel="stylesheet" href="admin.css?v=datafix-1">
+  <link rel="manifest" href="admin-manifest.json">
+  <link rel="apple-touch-icon" href="logo.jpeg">
+  <meta name="theme-color" content="#006bd6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Moventra Admin">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body class="adminBody">
+  <header class="adminTop">
+    <div class="adminBrand">
+      <img src="logo.jpeg" alt="Moventra Transport">
+      <div>
+        <strong>Espace employé</strong>
+        <span id="employeeEmail">Chargement...</span>
+      </div>
+    </div>
+    <a href="historique.html" class="smallBtn ok">Historique</a>
+    <button id="enableNotificationsBtn" class="smallBtn">🔔 Notifications</button>
+      <a href="/push-debug.html" class="smallBtn">Test push</a>
+    <button id="logoutBtn" class="smallBtn danger">Déconnexion</button>
+  </header>
+
+  <main class="adminMain">
+    <section class="adminHero">
+      <span class="adminBadge">Mes travaux</span>
+      <h1>Travaux assignés</h1>
+      <p>Vous voyez seulement les travaux qui vous sont assignés.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panelHead">
+        <div>
+          <span class="adminBadge">Liste</span>
+          <h2>Mes tâches</h2>
+        </div>
+        <button id="refreshTasks" class="smallBtn">Rafraîchir</button>
+      </div>
+      <div id="tasksList" class="cardsList"></div>
+    </section>
+  <p id="notificationStatus" class="notificationStatus"></p>
+
+<div class="installHint">
+  📲 Pour l’utiliser comme une app : Safari/Chrome → Partager → Ajouter à l’écran d’accueil.
+</div>
+
+</main>
+
+  <script type="module" src="employe.js?v=datafix-1"></script>
+<script src="pwa.js?v=datafix-1"></script>
+<script src="push.js?v=subscription-fix-1" defer></script>
+
+</body>
+</html>

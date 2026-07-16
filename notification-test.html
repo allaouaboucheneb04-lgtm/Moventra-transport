@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Test Notifications Moventra Transport</title>
+<link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="admin-nav.css?v=crm-menu-1">
+</head>
+<body class="adminBody">
+<main class="adminMain">
+<section class="panel">
+<h1>Notifications Moventra</h1>
+<p id="notificationStatus" class="notificationStatus">Vérification de l’état des notifications…</p>
+<button id="enableNotificationsBtn" class="smallBtn">🔔 Activer notifications</button>
+<a href="admin.html" class="smallBtn ok" style="margin-top:12px">Retour admin</a>
+</section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const status = document.getElementById("notificationStatus");
+let currentUser = null;
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  status.textContent = user ? "Connecté. Appuie sur Notifications pour activer ou vérifier l’abonnement." : "Non connecté. Va d’abord sur admin.html.";
+});
+
+document.getElementById("enableNotificationsBtn").onclick = async () => {
+  if (currentUser?.uid) window.didierCurrentUserId = currentUser.uid;
+  window.didierCurrentUserRole = "admin";
+  status.textContent = "Activation en cours…";
+  try {
+    if (typeof window.moventraEnablePush !== "function") {
+      throw new Error("Le module Push n’est pas encore prêt. Patiente quelques secondes puis réessaie.");
+    }
+    const ok = await window.moventraEnablePush();
+    status.textContent = ok ? "✅ Notifications du téléphone activées." : "L’autorisation est accordée, mais l’abonnement OneSignal n’est pas encore prêt.";
+  } catch (e) {
+    console.error(e);
+    status.textContent = "Erreur Push : " + (e.message || e);
+  }
+};
+</script>
+<script src="pwa-navigation.js?v=navfix-20260713-1"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script src="push.js?v=subscription-fix-1" defer></script>
+<script src="admin-nav.js?v=subscription-fix-1"></script>
+</body>
+</html>
