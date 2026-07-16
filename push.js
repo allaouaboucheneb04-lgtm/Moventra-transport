@@ -206,28 +206,34 @@ window.moventraEnablePush = async function() {
       return false;
     }
 
-    // IMPORTANT iPhone : l’appel natif doit démarrer immédiatement dans le clic.
-    // Si on attend d’abord le chargement du SDK, Safari perd le geste utilisateur
-    // et n’affiche jamais la boîte Autoriser / Refuser.
-    let nativePermission = Notification.permission;
-    if (nativePermission === "default") {
+    // Le SDK est préchargé au démarrage de la page. La demande OneSignal
+    // doit être déclenchée depuis le clic de l’utilisateur pour iOS.
+    didierPushStatus("Préparation de OneSignal...");
+    const OneSignal = await waitForOneSignal(25000);
+
+    let permission = OneSignal.Notifications.permission
+      ? "granted"
+      : Notification.permission;
+
+    if (permission === "default") {
       didierPushStatus("Demande d’autorisation iPhone...");
-      nativePermission = await Notification.requestPermission();
+      const granted = await OneSignal.Notifications.requestPermission();
+      permission = granted || OneSignal.Notifications.permission || Notification.permission === "granted"
+        ? "granted"
+        : Notification.permission;
     }
 
-    if (nativePermission === "denied") {
+    if (Notification.permission === "denied" || permission === "denied") {
       didierPushStatus("Notifications bloquées. Ouvre Réglages iPhone > Notifications > Moventra Admin, puis active Autoriser les notifications.", false);
       return false;
     }
 
-    if (nativePermission !== "granted") {
+    if (Notification.permission !== "granted" && !OneSignal.Notifications.permission) {
       didierPushStatus("Autorisation non accordée par l’iPhone.", false);
       return false;
     }
 
-    // Une fois la permission native accordée, OneSignal peut créer l’abonnement.
-    didierPushStatus("Connexion à OneSignal...");
-    const OneSignal = await waitForOneSignal();
+    didierPushStatus("Création de l’abonnement OneSignal...");
 
     try {
       await OneSignal.User.PushSubscription.optIn();
@@ -235,28 +241,38 @@ window.moventraEnablePush = async function() {
       console.warn("[Moventra Push] optIn:", e);
     }
 
+    // Attend l’événement réel de création de l’abonnement.
     let id = "";
     let opted = false;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 80; i++) {
       id = didierGetSubId(OneSignal);
       opted = Boolean(OneSignal?.User?.PushSubscription?.optedIn);
       if (id || opted) break;
       await new Promise(r => setTimeout(r, 250));
     }
 
-    if (id) {
-      window.moventraPushState.lastSubscriptionId = id;
-      await saveSubscriptionToFirestore(id);
+    if (id || opted) {
+      if (id) {
+        window.moventraPushState.lastSubscriptionId = id;
+        await saveSubscriptionToFirestore(id);
+      }
+      sessionStorage.removeItem("moventra_push_resume");
       didierPushStatus("✅ Notifications du téléphone activées.", true);
       return true;
     }
 
-    if (opted || Notification.permission === "granted") {
-      didierPushStatus("✅ Autorisation accordée. Finalisation de l’abonnement OneSignal...", true);
+    // Sur iOS, le navigateur peut accorder la permission avant que le SDK
+    // reconstruise sa souscription. Un seul rechargement permet au SDK de
+    // repartir avec la permission déjà accordée et de terminer l’abonnement.
+    if (Notification.permission === "granted" && sessionStorage.getItem("moventra_push_resume") !== "1") {
+      sessionStorage.setItem("moventra_push_resume", "1");
+      didierPushStatus("Autorisation accordée. Finalisation de l’abonnement...");
+      setTimeout(() => location.reload(), 700);
       return true;
     }
 
-    didierPushStatus("L’iPhone a autorisé les notifications, mais OneSignal n’a pas créé l’abonnement. Vérifie que le Site URL OneSignal est https://www.moventratransport.ca.", false);
+    sessionStorage.removeItem("moventra_push_resume");
+    didierPushStatus("L’autorisation iPhone est accordée, mais OneSignal n’a pas créé l’abonnement. Vérifie l’App ID et le domaine dans OneSignal.", false);
     return false;
   } catch (e) {
     console.error("[Moventra Push]", e);
@@ -267,6 +283,40 @@ window.moventraEnablePush = async function() {
     didierSetButton("🔔 Notifications");
   }
 };
+
+// Reprend automatiquement la création de l’abonnement après le seul
+// rechargement effectué juste après l’autorisation iOS.
+window.addEventListener("load", async () => {
+  if (sessionStorage.getItem("moventra_push_resume") !== "1") return;
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    sessionStorage.removeItem("moventra_push_resume");
+    return;
+  }
+  try {
+    const OneSignal = await waitForOneSignal(25000);
+    await OneSignal.User.PushSubscription.optIn();
+    for (let i = 0; i < 80; i++) {
+      const id = didierGetSubId(OneSignal);
+      const opted = Boolean(OneSignal?.User?.PushSubscription?.optedIn);
+      if (id || opted) {
+        if (id) {
+          window.moventraPushState.lastSubscriptionId = id;
+          await saveSubscriptionToFirestore(id);
+        }
+        sessionStorage.removeItem("moventra_push_resume");
+        didierPushStatus("✅ Notifications du téléphone activées.", true);
+        window.dispatchEvent(new CustomEvent("moventra-push-activated"));
+        return;
+      }
+      await new Promise(r => setTimeout(r, 250));
+    }
+    sessionStorage.removeItem("moventra_push_resume");
+    didierPushStatus("Autorisation accordée, mais l’abonnement OneSignal n’a pas été créé.", false);
+  } catch (e) {
+    sessionStorage.removeItem("moventra_push_resume");
+    didierPushStatus("Erreur de finalisation OneSignal: " + (e.message || e), false);
+  }
+});
 
 window.moventraPushDebugInfo = async function() {
   try { await waitForOneSignal(5000); } catch(e) { console.warn(e); }
