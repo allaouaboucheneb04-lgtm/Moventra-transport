@@ -1,2 +1,1 @@
-// Compatibilité : ne pas initialiser OneSignal ici. L’unique initialisation est dans push.js.
-window.didierEloOneSignalReady = false;
+// Obsolète : OneSignal est initialisé uniquement dans push.js.

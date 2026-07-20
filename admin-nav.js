@@ -59,7 +59,7 @@
        const wait=()=>typeof window.moventraEnablePush==='function'?resolve():setTimeout(wait,100);wait();
        setTimeout(()=>reject(new Error('Le module de notifications ne répond pas.')),12000);return;
      }
-     const script=document.createElement('script');script.src='push.js?v=onesignal-cachefix-20260716-1';script.defer=true;script.dataset.moventraPush='1';
+     const script=document.createElement('script');script.src='push.js?v=onesignal-clean-20260719-1';script.defer=true;script.dataset.moventraPush='1';
      script.onload=()=>{const wait=()=>typeof window.moventraEnablePush==='function'?resolve():setTimeout(wait,100);wait()};
      script.onerror=()=>reject(new Error('Impossible de charger le module OneSignal.'));
      document.head.appendChild(script);
@@ -68,18 +68,11 @@
  };
 
  const checkPushActive=async()=>{
-   if(!('Notification' in window))return false;
    try{
      await loadPushScript();
-     // Attend brièvement que le SDK OneSignal termine son initialisation.
-     for(let i=0;i<40;i++){
-       const os=window.moventraPushState&&window.moventraPushState.oneSignal;
-       if(os){
-         const opted=Boolean(os.User&&os.User.PushSubscription&&os.User.PushSubscription.optedIn);
-         const id=(os.User&&os.User.PushSubscription&&(os.User.PushSubscription.id||os.User.PushSubscription.token))||'';
-         return Notification.permission==='granted'&&(opted||Boolean(id));
-       }
-       await new Promise(r=>setTimeout(r,150));
+     if(typeof window.moventraGetPushState==='function'){
+       const state=await window.moventraGetPushState();
+       return state.permission==='granted' && (state.optedIn || Boolean(state.subscriptionId));
      }
      return false;
    }catch(e){console.warn('[Moventra cloche] Vérification OneSignal:',e);return false}

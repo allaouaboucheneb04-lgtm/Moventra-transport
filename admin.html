@@ -113,9 +113,7 @@
 
   <script type="module" src="admin-v3.js?v=dashboard-clean-1"></script>
   <script src="pwa.js?v=dashboard-clean-1"></script>
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script src="push.js?v=onesignal-cachefix-20260716-1" defer></script>
-<script src="admin-nav.js?v=onesignal-cachefix-20260716-1"></script>
+<script src="admin-nav.js?v=onesignal-clean-20260719-1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const email = sessionStorage.getItem('moventra_admin_email') || '';
@@ -140,5 +138,8 @@
       if (!document.hidden) restoreDashboardScroll();
     });
   </script>
+
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script src="push.js?v=onesignal-clean-20260719-1" defer></script>
 </body>
 </html>
