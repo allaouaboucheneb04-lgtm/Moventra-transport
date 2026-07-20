@@ -179,19 +179,73 @@ form?.addEventListener("submit", async (event) => {
     const docRef = await addDoc(collection(db, "demandes_soumission"), submission);
     const secondaryTasks = [sendMoventraWebhook(data, docRef.id)];
     if (window.emailjs) {
+      const inventoryLines = Object.values(inventory)
+        .filter((item) => Number(item.qty) > 0)
+        .map((item) => `${item.label} × ${item.qty}`);
+
+      const inventaireTexte = inventoryLines.length
+        ? inventoryLines.join("\n")
+        : "Aucun article sélectionné";
+
+      const objetsSpeciaux = [
+        ...Object.values(inventory)
+          .filter((item) => item.heavy && Number(item.qty) > 0)
+          .map((item) => `${item.label} × ${item.qty}`),
+        data.inventoryOther || ""
+      ].filter(Boolean).join("\n") || "Aucun";
+
+      const dateEnvoi = new Intl.DateTimeFormat("fr-CA", {
+        dateStyle: "long",
+        timeStyle: "short",
+        timeZone: "America/Toronto"
+      }).format(new Date());
+
+      const estimateText = `${estimate.volumeM3} m³ · ${estimate.truck} · ${estimate.crew} déménageurs · ${estimate.duration}`;
+      const servicesAdditionnels = data.service || "Non précisé";
+
       secondaryTasks.push(emailjs.send("service_o6bm6tl", "template_c0smolo", {
-        nom: data.name || "",
-        telephone: data.phone || "",
-        email: data.email || "",
-        service: data.service || "",
-        date: data.date || "",
-        typeLogement: data.propertyType || "",
-        depart: data.address || "",
-        destination: data.destination || "",
-        etageDepart: data.startFloor || "",
-        etageArrivee: data.endFloor || "",
-        details: `${data.message || ""}\n\nInventaire estimé : ${estimate.volumeM3} m³ · ${estimate.truck} · ${estimate.crew} déménageurs · ${estimate.duration}`,
-        submissionId: estimationNumber
+        submissionId: estimationNumber,
+        numero: estimationNumber,
+        dateEnvoi,
+        date_envoi: dateEnvoi,
+        nom: data.name || "Non précisé",
+        telephone: data.phone || "Non précisé",
+        email: data.email || "Non précisé",
+        courriel: data.email || "Non précisé",
+        service: data.service || "Non précisé",
+        date: data.date || "Non précisée",
+        dateSouhaitee: data.date || "Non précisée",
+        depart: data.address || "Non précisée",
+        adresseDepart: data.address || "Non précisée",
+        destination: data.destination || "Non précisée",
+        adresseArrivee: data.destination || "Non précisée",
+        typeLogement: data.propertyType || "Non précisé",
+        typeLogementDepart: data.propertyType || "Non précisé",
+        typeLogementArrivee: data.propertyType || "Non précisé",
+        etageDepart: data.startFloor || "Non précisé",
+        etageArrivee: data.endFloor || "Non précisé",
+        ascenseurDepart: data.startElevator || "Non précisé",
+        ascenseurArrivee: data.endElevator || "Non précisé",
+        startElevator: data.startElevator || "Non précisé",
+        endElevator: data.endElevator || "Non précisé",
+        pieces: data.rooms || "Non précisé",
+        rooms: data.rooms || "Non précisé",
+        distancePorte: data.doorDistance || "Non précisée",
+        doorDistance: data.doorDistance || "Non précisée",
+        inventaire: inventaireTexte,
+        inventory: inventaireTexte,
+        objetsSpeciaux,
+        inventoryOther: data.inventoryOther || "Aucun",
+        servicesAdditionnels,
+        estimationInventaire: estimateText,
+        inventoryEstimate: estimateText,
+        volume: `${estimate.volumeM3} m³`,
+        camion: estimate.truck,
+        demenageurs: String(estimate.crew),
+        duree: estimate.duration,
+        details: data.message || "Aucun commentaire",
+        commentaires: data.message || "Aucun commentaire",
+        dashboardUrl: "https://www.moventratransport.ca/admin.html"
       }));
     }
 

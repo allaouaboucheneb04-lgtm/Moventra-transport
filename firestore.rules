@@ -10,6 +10,7 @@ service cloud.firestore {
     match /utilisateurs/{uid} { allow read: if signedIn() && (request.auth.uid == uid || isAdmin()); allow write: if isAdmin(); }
     match /employes/{uid} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /demandes_soumission/{id} { allow create: if true; allow read, update, delete: if isAdmin(); }
+    match /taches/{id} { allow read: if isAdmin() || isEmployee(); allow create, update, delete: if isAdmin(); }
     match /travaux/{id} { allow read: if isAdmin() || isEmployee(); allow create, update, delete: if isAdmin(); }
     match /factures/{id} { allow read, write: if isAdmin(); }
     match /devis/{id} { allow read, write: if isAdmin(); }

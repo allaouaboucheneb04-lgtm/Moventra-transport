@@ -1,6 +1,6 @@
 (function(){
  const items=[
-  ['admin.html','🏠','Tableau de bord'],['soumissions.html','📋','Soumissions'],['clients.html','👥','Clients'],['facturation.html','🧾','Factures'],['calendrier.html','📅','Calendrier'],['dispatch.html','👷','Dispatch'],['employes.html','👨‍💼','Employés'],['notification-test.html','🔔','Notifications'],['promotions.html','🎉','Promotions'],['parametres.html','⚙️','Paramètres']
+  ['admin.html','🏠','Tableau de bord'],['soumissions.html','📋','Soumissions'],['clients.html','👥','Clients'],['facturation.html','🧾','Factures'],['calendrier.html?v=admin-sync-20260719-1','📅','Calendrier'],['dispatch.html','👷','Dispatch'],['employes.html','👨‍💼','Employés'],['notification-test.html','🔔','Notifications'],['promotions.html','🎉','Promotions'],['parametres.html','⚙️','Paramètres']
  ];
  const current=(location.pathname.split('/').pop()||'admin.html');
  const activeFor=href=>current===href.split('#')[0];
